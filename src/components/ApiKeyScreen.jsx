@@ -104,7 +104,11 @@ export default function ApiKeyScreen({ onKeySet, onShowDemo }) {
 
           <div className={styles.orDivider}><span>or</span></div>
 
-          <button type="button" className={styles.demoSkipBtn} onClick={onShowDemo}>
+          <button
+            type="button"
+            className={styles.demoSkipBtn}
+            onClick={(e) => { e.stopPropagation(); onShowDemo(); }}
+          >
             <Play size={13} strokeWidth={2.5} />
             Skip for now — see a live demo instead
           </button>

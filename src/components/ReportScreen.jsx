@@ -74,9 +74,10 @@ export default function ReportScreen({ report, onReset }) {
     management_commentary, ratios, red_flags, what_changed,
     hidden_insights, bear_bull, eli15, drhp_extras } = report;
 
-  useEffect(() => {
-    saveToHistory(report);
-  }, [report]);
+    useEffect(() => {
+      saveToHistory(report);
+      window.scrollTo(0, 0);
+    }, [report]);
 
   const V = VERDICT_CONFIG[tldr?.verdict] || VERDICT_CONFIG.mixed;
   const VIcon = V.icon;
