@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+onimport { useState, useRef, useCallback, useEffect } from 'react';
 import {
   Upload, FileText, AlertCircle, Zap, Settings, Clock,
   Trash2, TrendingUp, TrendingDown, Minus, Play,
@@ -41,28 +41,25 @@ export default function UploadScreen({ onAnalyzing, onReportReady, onError, erro
   useEffect(() => { setHistory(getHistory()); }, []);
 
   const processFile = useCallback(async (file) => {
-    if (!file || file.type !== 'application/pdf') { onError('Please upload a PDF file.'); return; }
-    if (file.size > 30 * 1024 * 1024) { onError('File too large — please use a PDF under 30MB.'); return; }
- onAnalyzing();
+  if (!file || file.type !== 'application/pdf') { onError('Please upload a PDF file.'); return; }
+  if (file.size > 30 * 1024 * 1024) { onError('File too large — please use a PDF under 30MB.'); return; }
+  onAnalyzing();
 
-    if (import.meta.env.DEV) {
-      await new Promise(r => setTimeout(r, 2200));
-      onReportReady({ ...DEMO_REPORT, _isDemo: false });
-      return;
-    }
+  if (import.meta.env.DEV) {
+    await new Promise(r => setTimeout(r, 2200));
+    onReportReady({ ...DEMO_REPORT, _isDemo: false });
+    return;
+  }
 
-    try {
-      const { text, pageCount } = await extractTextFromPDF(file);
-    
-    try {
-      const { text, pageCount } = await extractTextFromPDF(file);
-      const filingType = detectFilingType(text);
-      const result = await analyzeFilingText(text, `Filing type: ${filingType}. Pages: ${pageCount}.`);
-      onReportReady(result);
-    } catch (err) {
-      onError(err.message || 'Something went wrong. Please try again.');
-    }
-  }, [onAnalyzing, onReportReady, onError]);
+  try {
+    const { text, pageCount } = await extractTextFromPDF(file);
+    const filingType = detectFilingType(text);
+    const result = await analyzeFilingText(text, `Filing type: ${filingType}. Pages: ${pageCount}.`);
+    onReportReady(result);
+  } catch (err) {
+    onError(err.message || 'Something went wrong. Please try again.');
+  }
+}, [onAnalyzing, onReportReady, onError]);
 
   const handleDrop = useCallback((e) => {
     e.preventDefault(); setDragging(false);
