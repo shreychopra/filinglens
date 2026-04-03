@@ -1,0 +1,469 @@
+/* ─── Base ─────────────────────────────────────────────── */
+.page {
+  min-height: 100vh;
+  background: var(--paper);
+  position: relative;
+  overflow-x: hidden;
+}
+
+.bgPattern {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse 70% 50% at 5% 0%, rgba(26,77,62,0.07) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 70% at 95% 100%, rgba(26,77,62,0.04) 0%, transparent 55%),
+    var(--paper);
+}
+
+/* ─── Nav ───────────────────────────────────────────────── */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(250,249,247,0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+
+.navInner {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--accent);
+}
+
+.navRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.navLink {
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: var(--ink-3);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  transition: color 0.15s;
+}
+.navLink:hover { color: var(--ink); }
+
+.settingsBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--ink-3);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 5px 11px;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: color 0.15s, border-color 0.15s;
+}
+.settingsBtn:hover { color: var(--ink); border-color: var(--border-2); }
+
+/* ─── Container ─────────────────────────────────────────── */
+.container {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 0 1.25rem 4rem;
+}
+
+/* ─── Hero ──────────────────────────────────────────────── */
+.hero {
+  text-align: center;
+  padding: 4rem 0 2.5rem;
+}
+
+.heroBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--accent-light);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 13px;
+  border-radius: 20px;
+  margin-bottom: 1.5rem;
+  border: 1px solid #b7ddd0;
+}
+
+.heroBadgeDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-mid);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+.heroTitle {
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 6vw, 3.2rem);
+  font-weight: 400;
+  line-height: 1.12;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  margin-bottom: 1.1rem;
+}
+
+.heroTitle em {
+  font-style: italic;
+  color: var(--accent-mid);
+}
+
+.heroSub {
+  font-size: 16px;
+  color: var(--ink-3);
+  line-height: 1.65;
+  max-width: 480px;
+  margin: 0 auto 1.5rem;
+}
+
+.filingTypes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 7px;
+}
+
+.filingTypeChip {
+  background: var(--paper-2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+/* ─── Upload ────────────────────────────────────────────── */
+.uploadSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 2.5rem;
+}
+
+.dropzone {
+  border: 1.5px dashed var(--border-2);
+  border-radius: var(--radius-xl);
+  background: var(--paper-2);
+  padding: 2rem 1.5rem;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, transform 0.15s;
+}
+
+.dropzone:hover {
+  border-color: var(--accent-mid);
+  background: var(--accent-light);
+}
+
+.dropzone.dragging {
+  border-color: var(--accent);
+  background: var(--accent-light);
+  transform: scale(1.01);
+}
+
+.dropContent {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.dropIconWrap {
+  width: 48px;
+  height: 48px;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-3);
+  flex-shrink: 0;
+}
+
+.dropText { flex: 1; min-width: 0; }
+.dropTitle { font-size: 15px; font-weight: 500; color: var(--ink-2); margin-bottom: 3px; }
+.dropSub { font-size: 12px; color: var(--ink-4); }
+
+.uploadBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-body);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.uploadBtn:hover { background: var(--accent-mid); }
+
+.errorBanner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--danger-light);
+  color: var(--danger);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 13px;
+}
+
+.demoRow {
+  display: flex;
+  justify-content: center;
+}
+
+.demoBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 16px;
+  background: transparent;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  color: var(--ink-2);
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.demoBtn:hover {
+  background: var(--accent-light);
+  border-color: var(--accent-mid);
+  color: var(--accent);
+}
+
+/* ─── History ───────────────────────────────────────────── */
+.historySection { margin-bottom: 2.5rem; }
+
+.sectionHeading {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-3);
+  margin-bottom: 10px;
+}
+
+.historyGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.historyCard {
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.historyCard:hover {
+  border-color: var(--border-2);
+  box-shadow: var(--shadow-sm);
+}
+
+.historyCardTop {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 8px;
+}
+
+.verdictDot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.vStrong { background: var(--ok-light); color: var(--ok); }
+.vMixed  { background: var(--warn-light); color: var(--warn); }
+.vRisky  { background: var(--danger-light); color: var(--danger); }
+
+.historyDate { font-size: 11px; color: var(--ink-4); flex: 1; }
+
+.deleteBtn {
+  background: none;
+  border: none;
+  color: var(--ink-4);
+  cursor: pointer;
+  padding: 2px;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+.historyCard:hover .deleteBtn { opacity: 1; }
+.deleteBtn:hover { color: var(--danger); }
+
+.historyName {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+.historyPeriod { font-size: 11px; color: var(--ink-4); }
+
+/* ─── Features ──────────────────────────────────────────── */
+.featuresSection { margin-bottom: 2.5rem; }
+
+.featuresHeading {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 400;
+  color: var(--ink);
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.featuresGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.featureCard {
+  background: var(--paper-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.featureIcon {
+  width: 32px;
+  height: 32px;
+  background: var(--accent-light);
+  color: var(--accent);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.featureTitle {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.featureDesc {
+  font-size: 12px;
+  color: var(--ink-3);
+  line-height: 1.55;
+}
+
+/* ─── How it works ──────────────────────────────────────── */
+.howSection { margin-bottom: 2.5rem; }
+
+.stepsRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--paper);
+}
+.step:last-child { border-bottom: none; }
+
+.stepNum {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stepLabel { font-size: 14px; font-weight: 500; color: var(--ink-2); margin-bottom: 2px; }
+.stepSub { font-size: 12px; color: var(--ink-4); }
+
+/* ─── Privacy / Footer ──────────────────────────────────── */
+.privacyNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  background: var(--paper-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin-bottom: 2rem;
+  color: var(--ink-3);
+}
+.privacyNote p { font-size: 12px; line-height: 1.55; }
+
+.footer {
+  text-align: center;
+  font-size: 11px;
+  color: var(--ink-4);
+  padding-bottom: 1rem;
+}
+
+/* ─── Mobile ────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .hero { padding: 2.5rem 0 2rem; }
+  .heroTitle { font-size: 2rem; }
+  .featuresGrid { grid-template-columns: 1fr; }
+  .dropContent { flex-direction: column; align-items: flex-start; }
+  .uploadBtn { width: 100%; justify-content: center; }
+  .historyGrid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 400px) {
+  .historyGrid { grid-template-columns: 1fr; }
+}
