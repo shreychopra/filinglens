@@ -122,9 +122,47 @@
   font-weight: 500;
   transition: background 0.15s, opacity 0.15s;
   font-family: var(--font-body);
+  cursor: pointer;
 }
 .submitBtn:hover:not(:disabled) { background: var(--accent-mid); }
 .submitBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.orDivider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink-4);
+  font-size: 12px;
+}
+.orDivider::before,
+.orDivider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.demoSkipBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  padding: 10px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  color: var(--ink-3);
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.demoSkipBtn:hover {
+  background: var(--accent-light);
+  color: var(--accent);
+  border-color: var(--accent-mid);
+}
 
 .howTo {
   background: var(--paper-2);
@@ -179,34 +217,4 @@
   text-align: center;
   line-height: 1.55;
   max-width: 360px;
-}
-.orDivider {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--ink-4);
-  font-size: 12px;
-}
-.orDivider::before,
-.orDivider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border);
-}
-.demoSkipBtn {
-  width: 100%;
-  padding: 10px;
-  background: none;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  color: var(--ink-3);
-  cursor: pointer;
-  font-family: var(--font-body);
-  transition: background 0.15s, color 0.15s;
-}
-.demoSkipBtn:hover {
-  background: var(--paper-2);
-  color: var(--ink);
 }
