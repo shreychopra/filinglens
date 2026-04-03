@@ -4,6 +4,7 @@ import AnalyzingScreen from './components/AnalyzingScreen.jsx';
 import ReportScreen from './components/ReportScreen.jsx';
 import ApiKeyScreen from './components/ApiKeyScreen.jsx';
 import { getApiKey } from './lib/analyzer.js';
+import { DEMO_REPORT } from './lib/demoData.js';
 
 export default function App() {
   const [screen, setScreen] = useState('loading');
@@ -45,9 +46,9 @@ export default function App() {
     <>
       {screen === 'apikey' && (
         <ApiKeyScreen
-  onKeySet={() => setScreen('upload')}
-  onShowDemo={() => { setReport(null); setScreen('upload'); }}
-/>
+          onKeySet={() => setScreen('upload')}
+          onShowDemo={() => handleReportReady(DEMO_REPORT)}
+        />
       )}
       {screen === 'upload' && (
         <UploadScreen
