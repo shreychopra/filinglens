@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Key, ExternalLink, Eye, EyeOff, Zap, ArrowRight } from 'lucide-react';
+import { Key, ExternalLink, Eye, EyeOff, Zap, ArrowRight, Play } from 'lucide-react';
 import { saveApiKey } from '../lib/analyzer.js';
 import styles from './ApiKeyScreen.module.css';
 
@@ -20,7 +20,6 @@ export default function ApiKeyScreen({ onKeySet, onShowDemo }) {
     setLoading(true);
     setError('');
 
-    // Quick validation call
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -103,14 +102,10 @@ export default function ApiKeyScreen({ onKeySet, onShowDemo }) {
             </button>
           </form>
 
-          <div className={styles.orDivider}>
-            <span>or</span>
-          </div>
-          <button
-            type="button"
-            className={styles.demoSkipBtn}
-            onClick={onShowDemo}
-          >
+          <div className={styles.orDivider}><span>or</span></div>
+
+          <button type="button" className={styles.demoSkipBtn} onClick={onShowDemo}>
+            <Play size={13} strokeWidth={2.5} />
             Skip for now — see a live demo instead
           </button>
 
