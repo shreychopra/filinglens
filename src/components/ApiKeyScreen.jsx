@@ -3,7 +3,7 @@ import { Key, ExternalLink, Eye, EyeOff, Zap, ArrowRight } from 'lucide-react';
 import { saveApiKey } from '../lib/analyzer.js';
 import styles from './ApiKeyScreen.module.css';
 
-export default function ApiKeyScreen({ onKeySet }) {
+export default function ApiKeyScreen({ onKeySet, onShowDemo }) {
   const [key, setKey] = useState('');
   const [show, setShow] = useState(false);
   const [error, setError] = useState('');
@@ -102,6 +102,17 @@ export default function ApiKeyScreen({ onKeySet }) {
               )}
             </button>
           </form>
+
+          <div className={styles.orDivider}>
+            <span>or</span>
+          </div>
+          <button
+            type="button"
+            className={styles.demoSkipBtn}
+            onClick={onShowDemo}
+          >
+            Skip for now — see a live demo instead
+          </button>
 
           <div className={styles.howTo}>
             <p className={styles.howToTitle}>How to get a key</p>
