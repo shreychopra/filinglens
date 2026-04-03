@@ -43,15 +43,16 @@ export default function UploadScreen({ onAnalyzing, onReportReady, onError, erro
   const processFile = useCallback(async (file) => {
     if (!file || file.type !== 'application/pdf') { onError('Please upload a PDF file.'); return; }
     if (file.size > 30 * 1024 * 1024) { onError('File too large — please use a PDF under 30MB.'); return; }
-    onAnalyzing();
-    onAnalyzing();
+ onAnalyzing();
 
-    // DEV MODE: skip API, return demo data after fake delay
     if (import.meta.env.DEV) {
       await new Promise(r => setTimeout(r, 2200));
       onReportReady({ ...DEMO_REPORT, _isDemo: false });
       return;
     }
+
+    try {
+      const { text, pageCount } = await extractTextFromPDF(file);
     
     try {
       const { text, pageCount } = await extractTextFromPDF(file);
