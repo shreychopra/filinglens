@@ -1,4 +1,4 @@
-onimport { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   Upload, FileText, AlertCircle, Zap, Settings, Clock,
   Trash2, TrendingUp, TrendingDown, Minus, Play,
