@@ -44,7 +44,10 @@ export default function App() {
   return (
     <>
       {screen === 'apikey' && (
-        <ApiKeyScreen onKeySet={() => setScreen('upload')} />
+        <ApiKeyScreen
+  onKeySet={() => setScreen('upload')}
+  onShowDemo={() => { setReport(null); setScreen('upload'); }}
+/>
       )}
       {screen === 'upload' && (
         <UploadScreen
