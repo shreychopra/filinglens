@@ -11,6 +11,10 @@ export default function App() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (import.meta.env.DEV) {
+      setScreen('upload');
+      return;
+    }
     const key = getApiKey();
     setScreen(key ? 'upload' : 'apikey');
   }, []);
