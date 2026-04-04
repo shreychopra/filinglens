@@ -21,13 +21,11 @@ export default function ApiKeyScreen({ onKeySet, onShowDemo }) {
     setError('');
 
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-api-key': trimmed,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-calls': 'true',
         },
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',

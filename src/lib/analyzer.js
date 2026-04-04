@@ -163,15 +163,14 @@ IMPORTANT: All amounts in the document are in Indian Rupees Lakhs unless stated 
 DOCUMENT TEXT:
 ${textToAnalyze}`;
 
-  let response;
-  try {
-    response = await fetch('/api/analyze', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
+let response;
+try {
+  response = await fetch('/api/analyze', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+    },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 4000,
