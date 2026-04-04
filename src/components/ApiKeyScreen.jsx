@@ -44,8 +44,8 @@ export default function ApiKeyScreen({ onKeySet, onShowDemo }) {
 
       saveApiKey(trimmed);
       onKeySet();
-    } catch {
-      setError('Could not verify the key — check your internet connection.');
+    } catch (err) {
+      setError('Connection failed: ' + (err?.message || String(err)));
     }
     setLoading(false);
   }
