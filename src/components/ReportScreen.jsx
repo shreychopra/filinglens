@@ -100,7 +100,7 @@ export default function ReportScreen({ report, onReset }) {
   }
 
   return (
-    <div className={styles.page}>
+    <>
       <div className={styles.topbar}>
         <button className={styles.backBtn} onClick={onReset}>
           <ArrowLeft size={14} /> New filing
@@ -118,6 +118,15 @@ export default function ReportScreen({ report, onReset }) {
           <span className={styles.printLabel}>Print</span>
         </button>
       </div>
+
+      {report._isDemo && (
+        <div className={styles.demoBanner}>
+          This is a sample report — upload your own PDF to analyse any SEBI filing
+        </div>
+      )}
+
+      <div className={styles.page}>
+      <div className={styles.container}>
 
       {report._isDemo && (
         <div className={styles.demoBanner}>
@@ -498,9 +507,11 @@ export default function ReportScreen({ report, onReset }) {
           <button className={styles.newAnalysisBtn} onClick={onReset}>
             Analyse another filing
           </button>
-        </div>
+          </div>
+      </div>
       </div>
     </div>
+    </>
   );
 }
 
