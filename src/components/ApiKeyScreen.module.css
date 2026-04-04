@@ -27,6 +27,8 @@
 }
 
 .card {
+  position: relative;
+  z-index: 1;
   width: 100%;
   background: var(--paper);
   border: 1px solid var(--border);
