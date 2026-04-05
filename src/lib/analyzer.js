@@ -182,26 +182,24 @@ IMPORTANT: All amounts in the document are in Indian Rupees Lakhs unless stated 
 DOCUMENT TEXT:
 ${textToAnalyze}`;
 
-  let response;
-  try {
-    response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-calls': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4000,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: userMessage }],
-      }),
-    });
-  } catch (networkErr) {
-    throw new Error('Network error — check your internet connection and try again.');
-  }
+let response;
+try {
+  response = await fetch('/api/analyze', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4000,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: userMessage }],
+    }),
+  });
+} catch (networkErr) {
+  throw new Error('Network error — check your internet connection and try again.');
+}
 
   if (response.status === 401) throw new Error('INVALID_API_KEY');
   if (response.status === 429) throw new Error('Rate limit hit — wait a moment and try again.');
