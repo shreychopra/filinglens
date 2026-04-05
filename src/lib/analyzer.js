@@ -15,6 +15,8 @@ CRITICAL RULES:
 - For annual filings: compare FY vs prior FY
 - If a number is not in the document, return null — never hallucinate
 - EBITDA MUST be calculated when PBT, Finance Cost, and Depreciation are available: EBITDA = PBT + Finance Cost + Depreciation - Other Income. Other Income is excluded to show pure operational earnings.
+- CRITICAL EBITDA CHECK: EBITDA must always be LESS than Revenue. EBITDA margin for a steel pipe manufacturer should be 3-8%. If your calculated EBITDA margin is above 15%, you have made an error — recheck the numbers. Common mistake: using 9-month figures instead of quarterly figures.
+- Always use the SAME period figures for all calculations — if showing Q3 numbers, use Q3 PBT, Q3 Finance Cost, Q3 Depreciation, Q3 Other Income.
 - For "exchange" field: if listed on both BSE and NSE, return "BSE & NSE" not "Both"
 - For quarterly filings, always populate the ytd object with year-to-date figures (9M for Q3, H1 for Q2, FY for Q4)
 - management_commentary.available should be false for bare quarterly result PDFs that contain only financial tables
@@ -99,7 +101,7 @@ Return this exact JSON structure:
   },
   "ratios": [
     {
-      "name": "string — include as many as the document supports: EBITDA Margin, Net Margin, Gross Margin, EPS, Revenue Growth YoY, PAT Growth YoY, Interest Coverage Ratio (EBITDA/Finance Cost), Debt-to-Equity if balance sheet available, Raw Material as % of Revenue, Finance Cost as % of Revenue",
+      "name": "string — DO NOT repeat Revenue Growth, PAT Growth, or EPS — those are already in the snapshot. Include ONLY: EBITDA Margin (%), Net Margin (%), Gross Margin if calculable (%), Interest Coverage Ratio (EBITDA ÷ Finance Cost), Raw Material as % of Revenue, Finance Cost as % of Revenue, Debt-to-Equity if balance sheet available, Operating Leverage (revenue growth vs profit growth gap)",
       "value": "string (formatted with units)",
       "benchmark": "string — what is considered good/bad for this specific sector in India",
       "assessment": "strong|ok|weak|na"

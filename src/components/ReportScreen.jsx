@@ -70,6 +70,8 @@ function CollapsibleSection({ title, icon: Icon, children, defaultOpen = true, b
 
 export default function ReportScreen({ report, onReset }) {
   const [copied, setCopied] = useState(false);
+  const [snapshotView, setSnapshotView] = useState('quarterly');
+  const [trendMetric, setTrendMetric] = useState('revenue');
   const { company, tldr, financials, trend, business, risks, positives,
     management_commentary, ratios, red_flags, what_changed,
     hidden_insights, bear_bull, eli15, drhp_extras } = report;
@@ -171,59 +173,108 @@ export default function ReportScreen({ report, onReset }) {
 
         {/* Financial Snapshot */}
         <CollapsibleSection title="Financial snapshot" icon={BarChart2}>
-          <div className={styles.metricsGrid}>
-            <MetricCard
-              label={`Revenue (${financials?.revenue?.period || ''})`}
-              value={fmt(financials?.revenue?.value)}
-              change={revenueChange}
-              prevLabel={financials?.revenue?.prev_period || 'Prior period'}
-              prevValue={fmt(financials?.revenue?.prev)}
-            />
-            <MetricCard
-              label={`Net profit (${financials?.net_profit?.period || ''})`}
-              value={fmt(financials?.net_profit?.value)}
-              change={profitChange}
-              prevLabel={financials?.net_profit?.prev_period || 'Prior period'}
-              prevValue={fmt(financials?.net_profit?.prev)}
-            />
-            {financials?.ebitda?.value != null && (
+          {financials?.ytd?.revenue && (
+            <div className={styles.toggleRow}>
+              <button
+                className={`${styles.toggleBtn} ${snapshotView === 'quarterly' ? styles.toggleActive : ''}`}
+                onClick={() => setSnapshotView('quarterly')}
+              >
+                {financials?.revenue?.period || 'Quarterly'}
+              </button>
+              <button
+                className={`${styles.toggleBtn} ${snapshotView === 'ytd' ? styles.toggleActive : ''}`}
+                onClick={() => setSnapshotView('ytd')}
+              >
+                {financials?.ytd?.period_label || 'Year to date'}
+              </button>
+            </div>
+          )}
+          {snapshotView === 'quarterly' ? (
+            <div className={styles.metricsGrid}>
               <MetricCard
-                label={`EBITDA (${financials?.revenue?.period || ''})`}
-                value={fmt(financials.ebitda.value)}
-                change={pct(financials.ebitda.value, financials.ebitda.prev)}
+                label="Revenue"
+                value={fmt(financials?.revenue?.value)}
+                change={revenueChange}
                 prevLabel={financials?.revenue?.prev_period || 'Prior period'}
-                prevValue={fmt(financials.ebitda.prev)}
-                subNote={financials.ebitda.margin != null ? `Margin: ${fmtPct(financials.ebitda.margin)}` : null}
+                prevValue={fmt(financials?.revenue?.prev)}
               />
-            )}
-            <MetricCard
-              label={`Net margin (${financials?.revenue?.period || ''})`}
-              value={fmtPct(financials?.net_margin?.value)}
-              change={financials?.net_margin?.value != null && financials?.net_margin?.prev != null
-                ? (financials.net_margin.value - financials.net_margin.prev).toFixed(1) + ' pp'
-                : null}
-              isAbsolute
-              prevLabel={financials?.revenue?.prev_period || 'Prior period'}
-              prevValue={fmtPct(financials?.net_margin?.prev)}
-            />
-            <MetricCard
-              label={`EPS (${financials?.eps?.period || ''})`}
-              value={financials?.eps?.value != null ? `₹${financials.eps.value}` : '—'}
-              change={pct(financials?.eps?.value, financials?.eps?.prev)}
-              prevLabel={financials?.eps?.prev_period || 'Prior period'}
-              prevValue={financials?.eps?.prev != null ? `₹${financials.eps.prev}` : '—'}
-            />
-          </div>
+              <MetricCard
+                label="EPS"
+                value={financials?.eps?.value != null ? `₹${financials.eps.value}` : '—'}
+                change={pct(financials?.eps?.value, financials?.eps?.prev)}
+                prevLabel={financials?.eps?.prev_period || 'Prior period'}
+                prevValue={financials?.eps?.prev != null ? `₹${financials.eps.prev}` : '—'}
+              />
+              {financials?.ebitda?.value != null && (
+                <MetricCard
+                  label="EBITDA"
+                  value={fmt(financials.ebitda.value)}
+                  change={pct(financials.ebitda.value, financials.ebitda.prev)}
+                  prevLabel={financials?.revenue?.prev_period || 'Prior period'}
+                  prevValue={fmt(financials.ebitda.prev)}
+                />
+              )}
+              {financials?.ebitda?.margin != null && (
+                <MetricCard
+                  label="EBITDA margin"
+                  value={fmtPct(financials.ebitda.margin)}
+                  change={financials.ebitda.margin != null && financials.ebitda.prev_margin != null
+                    ? (financials.ebitda.margin - financials.ebitda.prev_margin).toFixed(1) + ' pp'
+                    : null}
+                  isAbsolute
+                  prevLabel={financials?.revenue?.prev_period || 'Prior period'}
+                  prevValue={fmtPct(financials.ebitda.prev_margin)}
+                />
+              )}
+              <MetricCard
+                label="Net profit"
+                value={fmt(financials?.net_profit?.value)}
+                change={profitChange}
+                prevLabel={financials?.net_profit?.prev_period || 'Prior period'}
+                prevValue={fmt(financials?.net_profit?.prev)}
+              />
+              <MetricCard
+                label="Net margin"
+                value={fmtPct(financials?.net_margin?.value)}
+                change={financials?.net_margin?.value != null && financials?.net_margin?.prev != null
+                  ? (financials.net_margin.value - financials.net_margin.prev).toFixed(1) + ' pp'
+                  : null}
+                isAbsolute
+                prevLabel={financials?.revenue?.prev_period || 'Prior period'}
+                prevValue={fmtPct(financials?.net_margin?.prev)}
+              />
+            </div>
+          ) : (
+            <div className={styles.metricsGrid}>
+              <MetricCard
+                label="Revenue"
+                value={fmt(financials?.ytd?.revenue)}
+                change={null}
+                prevLabel={financials?.ytd?.period_label}
+                prevValue={null}
+              />
+              {financials?.ytd?.ebitda && (
+                <MetricCard
+                  label="EBITDA"
+                  value={fmt(financials.ytd.ebitda)}
+                  change={null}
+                  prevLabel={financials?.ytd?.period_label}
+                  prevValue={null}
+                />
+              )}
+              {financials?.ytd?.net_profit && (
+                <MetricCard
+                  label="Net profit"
+                  value={fmt(financials.ytd.net_profit)}
+                  change={null}
+                  prevLabel={financials?.ytd?.period_label}
+                  prevValue={null}
+                />
+              )}
+            </div>
+          )}
           {financials?.ebitda?.calculation_note && (
             <p className={styles.ebitdaNote}>EBITDA = PBT + Finance Cost + Depreciation − Other Income</p>
-          )}
-          {financials?.ytd?.revenue && (
-            <div className={styles.ytdRow}>
-              <span className={styles.ytdLabel}>{financials.ytd.period_label}</span>
-              <span className={styles.ytdStat}>Revenue: {fmt(financials.ytd.revenue)}</span>
-              {financials.ytd.net_profit && <span className={styles.ytdStat}>PAT: {fmt(financials.ytd.net_profit)}</span>}
-              {financials.ytd.ebitda && <span className={styles.ytdStat}>EBITDA: {fmt(financials.ytd.ebitda)}</span>}
-            </div>
           )}
           {financials?.commentary && (
             <p className={styles.commentary}>{financials.commentary}</p>
@@ -242,6 +293,21 @@ export default function ReportScreen({ report, onReset }) {
               </span>
               {trend?.summary && <p className={styles.trendSummary}>{trend.summary}</p>}
             </div>
+            <div className={styles.toggleRow}>
+              {[
+                { key: 'revenue', label: 'Revenue' },
+                ...(trendData.some(d => d.ebitda) ? [{ key: 'ebitda', label: 'EBITDA' }] : []),
+                { key: 'profit', label: 'Net profit' },
+              ].map(m => (
+                <button
+                  key={m.key}
+                  className={`${styles.toggleBtn} ${trendMetric === m.key ? styles.toggleActive : ''}`}
+                  onClick={() => setTrendMetric(m.key)}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
             <div className={styles.chartWrap}>
               <ResponsiveContainer width="100%" height={180}>
                 <BarChart data={trendData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
@@ -249,16 +315,16 @@ export default function ReportScreen({ report, onReset }) {
                   <YAxis tick={{ fontSize: 10, fill: 'var(--ink-4)' }} tickLine={false} axisLine={false} />
                   <Tooltip
                     contentStyle={{ background: 'var(--paper)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }}
-                    formatter={(v) => [`₹${v} Cr`]}
+                    formatter={(v) => v != null ? [`₹${v} Cr`] : ['—']}
                   />
-                  <Bar dataKey="revenue" name="Revenue" radius={[3, 3, 0, 0]} maxBarSize={32}>
+                  <Bar dataKey={trendMetric} name={trendMetric === 'revenue' ? 'Revenue' : trendMetric === 'ebitda' ? 'EBITDA' : 'Net profit'} radius={[3, 3, 0, 0]} maxBarSize={32}>
                     {trendData.map((_, i) => (
                       <Cell key={i} fill={i === trendData.length - 1 ? 'var(--accent)' : 'var(--paper-3)'} />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-              <p className={styles.chartLabel}>Revenue (₹ Cr) — latest bar highlighted</p>
+              <p className={styles.chartLabel}>{trendMetric === 'revenue' ? 'Revenue' : trendMetric === 'ebitda' ? 'EBITDA' : 'Net profit'} (₹ Cr) — latest bar highlighted</p>
             </div>
           </CollapsibleSection>
         )}
