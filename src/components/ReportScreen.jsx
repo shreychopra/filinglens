@@ -10,45 +10,35 @@ import { saveToHistory } from '../lib/history.js';
 import styles from './ReportScreen.module.css';
 
 const VERDICT_CONFIG = {
-  strong:  { label: 'Strong',  color: styles.verdictStrong,  icon: TrendingUp },
-  mixed:   { label: 'Mixed',   color: styles.verdictMixed,   icon: Minus },
-  risky:   { label: 'Risky',   color: styles.verdictRisky,   icon: TrendingDown },
+  strong: { label: 'Strong', color: styles.verdictStrong, icon: TrendingUp },
+  mixed:  { label: 'Mixed',  color: styles.verdictMixed,  icon: Minus },
+  risky:  { label: 'Risky',  color: styles.verdictRisky,  icon: TrendingDown },
 };
-
 const STATUS_CONFIG = {
   clear:   { label: 'Clear',   cls: styles.flagClear },
   watch:   { label: 'Watch',   cls: styles.flagWatch },
   concern: { label: 'Concern', cls: styles.flagConcern },
 };
-
-const SEV_CONFIG = {
-  high:   styles.riskHigh,
-  medium: styles.riskMed,
-  low:    styles.riskLow,
-};
-
-const ASSESS_CONFIG = {
-  strong: styles.ratioStrong,
-  ok:     styles.ratioOk,
-  weak:   styles.ratioWeak,
-  na:     styles.ratioNa,
-};
+const SEV_CONFIG    = { high: styles.riskHigh, medium: styles.riskMed, low: styles.riskLow };
+const ASSESS_CONFIG = { strong: styles.ratioStrong, ok: styles.ratioOk, weak: styles.ratioWeak, na: styles.ratioNa };
 
 function pct(curr, prev) {
-  if (!curr || !prev || prev === 0) return null;
+  if (curr == null || prev == null || prev === 0) return null;
   return ((curr - prev) / Math.abs(prev) * 100).toFixed(1);
 }
-
 function fmt(n) {
-  if (n === null || n === undefined) return '—';
-  if (Math.abs(n) >= 1000) return `₹${(n / 1000).toFixed(1)}K Cr`;
-  if (Math.abs(n) >= 1) return `₹${n.toFixed(1)} Cr`;
+  if (n == null) return '—';
+  if (Math.abs(n) >= 1000) return `₹${(n/1000).toFixed(1)}K Cr`;
+  if (Math.abs(n) >= 1)    return `₹${n.toFixed(1)} Cr`;
   return `₹${n.toFixed(2)} Cr`;
 }
-
 function fmtPct(n) {
-  if (n === null || n === undefined) return '—';
+  if (n == null) return '—';
   return `${parseFloat(n).toFixed(1)}%`;
+}
+function ppChange(curr, prev) {
+  if (curr == null || prev == null) return null;
+  return (curr - prev).toFixed(1) + ' pp';
 }
 
 function CollapsibleSection({ title, icon: Icon, children, defaultOpen = true, badge }) {
@@ -68,93 +58,143 @@ function CollapsibleSection({ title, icon: Icon, children, defaultOpen = true, b
   );
 }
 
+function ToggleRow({ options, value, onChange }) {
+  return (
+    <div className={styles.toggleRow}>
+      {options.map(o => (
+        <button
+          key={o.key}
+          className={`${styles.toggleBtn} ${value === o.key ? styles.toggleActive : ''}`}
+          onClick={() => onChange(o.key)}
+        >{o.label}</button>
+      ))}
+    </div>
+  );
+}
+
+function MetricCard({ label, value, change, prevLabel, prevValue, isAbsolute }) {
+  const changeNum = parseFloat(change);
+  const isPos = changeNum > 0;
+  const isNeg = changeNum < 0;
+  const changeLabel = change == null ? null : isAbsolute ? change : `${isPos ? '+' : ''}${change}%`;
+  return (
+    <div className={styles.metricCard}>
+      <p className={styles.metricLabel}>{label}</p>
+      <p className={styles.metricValue}>{value}</p>
+      {changeLabel && (
+        <p className={`${styles.metricChange} ${isPos ? styles.changePos : isNeg ? styles.changeNeg : styles.changeFlat}`}>
+          {changeLabel} vs {prevLabel || 'prior'}
+        </p>
+      )}
+      {prevValue && prevValue !== '—' && (
+        <p className={styles.metricPrev}>{prevLabel || 'Prior period'}: {prevValue}</p>
+      )}
+    </div>
+  );
+}
+
 export default function ReportScreen({ report, onReset }) {
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied]             = useState(false);
   const [snapshotView, setSnapshotView] = useState('quarterly');
-  const [trendMetric, setTrendMetric] = useState('revenue');
+  const [trendMetric, setTrendMetric]   = useState('revenue');
+  const [trendPeriod, setTrendPeriod]   = useState('quarterly');
+
   const { company, tldr, financials, trend, business, risks, positives,
     management_commentary, ratios, red_flags, what_changed,
     hidden_insights, bear_bull, eli15, drhp_extras } = report;
 
-  useEffect(() => {
-    saveToHistory(report);
-    window.scrollTo(0, 0);
-  }, [report]);
+  useEffect(() => { saveToHistory(report); window.scrollTo(0, 0); }, [report]);
 
-  const V = VERDICT_CONFIG[tldr?.verdict] || VERDICT_CONFIG.mixed;
+  const V     = VERDICT_CONFIG[tldr?.verdict] || VERDICT_CONFIG.mixed;
   const VIcon = V.icon;
+  const f     = financials || {};
+  const yt    = f.ytd || {};
 
-  // Filter trend data — include any row that has at least revenue or profit
-  const trendData = (trend?.data_points || []).filter(d => d.revenue != null || d.profit != null);
-
-  const revenueChange = pct(financials?.revenue?.value, financials?.revenue?.prev);
-  const profitChange = pct(financials?.net_profit?.value, financials?.net_profit?.prev);
-  const hasYtd = Boolean(financials?.ytd?.revenue);
+  const hasYtd         = Boolean(yt.revenue);
+  const quarterlyTrend = (trend?.data_points     || []).filter(d => d.revenue != null || d.profit != null);
+  const ytdTrend       = (trend?.ytd_data_points || []).filter(d => d.revenue != null || d.profit != null);
+  const trendData      = trendPeriod === 'ytd' && ytdTrend.length > 0 ? ytdTrend : quarterlyTrend;
   const hasEbitdaTrend = trendData.some(d => d.ebitda != null);
+  const hasMgmtComm    = management_commentary?.available !== false
+                      && (management_commentary?.key_statements?.length > 0);
 
   function handleShare() {
     const text = `${company?.name} — ${tldr?.verdict?.toUpperCase()} | FilingLens\n\n${tldr?.investor_takeaway || ''}\n\n${(tldr?.bullets || []).slice(0, 3).map(b => '• ' + b).join('\n')}`;
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+    navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
   }
 
-  function handlePrint() {
-    window.print();
+  function renderMetricCards(view) {
+    if (view === 'quarterly') {
+      return (
+        <div className={styles.metricsGrid}>
+          <MetricCard label="Revenue"
+            value={fmt(f.revenue?.value)} change={pct(f.revenue?.value, f.revenue?.prev)}
+            prevLabel={f.revenue?.prev_period} prevValue={fmt(f.revenue?.prev)} />
+          <MetricCard label="EPS"
+            value={f.eps?.value != null ? `₹${f.eps.value}` : '—'} change={pct(f.eps?.value, f.eps?.prev)}
+            prevLabel={f.eps?.prev_period} prevValue={f.eps?.prev != null ? `₹${f.eps.prev}` : '—'} />
+          {f.ebitda?.value != null && (
+            <MetricCard label="EBITDA"
+              value={fmt(f.ebitda.value)} change={pct(f.ebitda.value, f.ebitda.prev)}
+              prevLabel={f.revenue?.prev_period} prevValue={fmt(f.ebitda.prev)} />
+          )}
+          {f.ebitda?.margin != null && (
+            <MetricCard label="EBITDA margin"
+              value={fmtPct(f.ebitda.margin)} change={ppChange(f.ebitda.margin, f.ebitda.prev_margin)} isAbsolute
+              prevLabel={f.revenue?.prev_period} prevValue={fmtPct(f.ebitda.prev_margin)} />
+          )}
+          <MetricCard label="Net profit"
+            value={fmt(f.net_profit?.value)} change={pct(f.net_profit?.value, f.net_profit?.prev)}
+            prevLabel={f.net_profit?.prev_period} prevValue={fmt(f.net_profit?.prev)} />
+          <MetricCard label="Net margin"
+            value={fmtPct(f.net_margin?.value)} change={ppChange(f.net_margin?.value, f.net_margin?.prev)} isAbsolute
+            prevLabel={f.revenue?.prev_period} prevValue={fmtPct(f.net_margin?.prev)} />
+        </div>
+      );
+    }
+    return (
+      <div className={styles.metricsGrid}>
+        <MetricCard label="Revenue"
+          value={fmt(yt.revenue)} change={pct(yt.revenue, yt.revenue_prev)}
+          prevLabel={yt.prev_period_label} prevValue={fmt(yt.revenue_prev)} />
+        <MetricCard label="EPS"
+          value={yt.eps != null ? `₹${yt.eps}` : '—'} change={pct(yt.eps, yt.eps_prev)}
+          prevLabel={yt.prev_period_label} prevValue={yt.eps_prev != null ? `₹${yt.eps_prev}` : '—'} />
+        {yt.ebitda != null && (
+          <MetricCard label="EBITDA"
+            value={fmt(yt.ebitda)} change={pct(yt.ebitda, yt.ebitda_prev)}
+            prevLabel={yt.prev_period_label} prevValue={fmt(yt.ebitda_prev)} />
+        )}
+        {yt.ebitda_margin != null && (
+          <MetricCard label="EBITDA margin"
+            value={fmtPct(yt.ebitda_margin)} change={ppChange(yt.ebitda_margin, yt.ebitda_margin_prev)} isAbsolute
+            prevLabel={yt.prev_period_label} prevValue={fmtPct(yt.ebitda_margin_prev)} />
+        )}
+        {yt.net_profit != null && (
+          <MetricCard label="Net profit"
+            value={fmt(yt.net_profit)} change={pct(yt.net_profit, yt.net_profit_prev)}
+            prevLabel={yt.prev_period_label} prevValue={fmt(yt.net_profit_prev)} />
+        )}
+        {yt.net_margin != null && (
+          <MetricCard label="Net margin"
+            value={fmtPct(yt.net_margin)} change={ppChange(yt.net_margin, yt.net_margin_prev)} isAbsolute
+            prevLabel={yt.prev_period_label} prevValue={fmtPct(yt.net_margin_prev)} />
+        )}
+      </div>
+    );
   }
-
-  // YTD metric card data — mirrors quarterly cards with ytd values
-  const ytdCards = [
-    {
-      label: 'Revenue',
-      value: fmt(financials?.ytd?.revenue),
-      change: null, prevLabel: null, prevValue: null,
-    },
-    {
-      label: 'EPS',
-      value: financials?.ytd?.eps != null ? `₹${financials.ytd.eps}` : '—',
-      change: null, prevLabel: null, prevValue: null,
-    },
-    {
-      label: 'EBITDA',
-      value: financials?.ytd?.ebitda ? fmt(financials.ytd.ebitda) : null,
-      change: null, prevLabel: null, prevValue: null,
-    },
-    {
-      label: 'EBITDA margin',
-      value: financials?.ytd?.ebitda_margin ? fmtPct(financials.ytd.ebitda_margin) : null,
-      change: null, prevLabel: null, prevValue: null,
-    },
-    {
-      label: 'Net profit',
-      value: financials?.ytd?.net_profit ? fmt(financials.ytd.net_profit) : null,
-      change: null, prevLabel: null, prevValue: null,
-    },
-    {
-      label: 'Net margin',
-      value: financials?.ytd?.net_margin ? fmtPct(financials.ytd.net_margin) : null,
-      change: null, prevLabel: null, prevValue: null,
-    },
-  ].filter(c => c.value && c.value !== '—');
 
   return (
     <>
       <div className={styles.topbar}>
-        <button className={styles.backBtn} onClick={onReset}>
-          <ArrowLeft size={14} /> New filing
-        </button>
-        <div className={styles.logoSmall}>
-          <Zap size={14} strokeWidth={2.5} />
-          FilingLens
-        </div>
+        <button className={styles.backBtn} onClick={onReset}><ArrowLeft size={14} /> New filing</button>
+        <div className={styles.logoSmall}><Zap size={14} strokeWidth={2.5} />FilingLens</div>
         <button className={styles.shareBtn} onClick={handleShare}>
           {copied ? <Check size={13} /> : <Share2 size={13} />}
           {copied ? 'Copied!' : 'Share'}
         </button>
-        <button className={styles.shareBtn} onClick={handlePrint} title="Save as PDF">
-          <Printer size={13} />
-          <span className={styles.printLabel}>Print</span>
+        <button className={styles.shareBtn} onClick={() => window.print()} title="Save as PDF">
+          <Printer size={13} /><span className={styles.printLabel}>Print</span>
         </button>
       </div>
 
@@ -167,233 +207,138 @@ export default function ReportScreen({ report, onReset }) {
       <div className={styles.page}>
         <div className={styles.container}>
 
-          {/* Company Header — full width */}
-          <div className={`${styles.companyHeader} ${styles.fullWidth}`}>
-            <div className={styles.companyInfo}>
+          {/* Company header — full width */}
+          <div className={styles.fullWidth}>
+            <div className={styles.companyHeader}>
               <h1 className={styles.companyName}>{company?.name || 'Company'}</h1>
               <div className={styles.companyMeta}>
-                {company?.ticker && <span className={styles.chip}>{company.ticker}</span>}
-                {company?.exchange && <span className={styles.chip}>{company.exchange}</span>}
-                {company?.sector && <span className={styles.chip}>{company.sector}</span>}
-                {company?.filing_period && <span className={styles.chip}>{company.filing_period}</span>}
-                {company?.filing_type && (
+                {company?.ticker       && <span className={styles.chip}>{company.ticker}</span>}
+                {company?.exchange     && <span className={styles.chip}>{company.exchange}</span>}
+                {company?.sector       && <span className={styles.chip}>{company.sector}</span>}
+                {company?.filing_period&& <span className={styles.chip}>{company.filing_period}</span>}
+                {company?.filing_type  && (
                   <span className={styles.chipType}>
-                    {company.filing_type === 'quarterly' ? 'Quarterly result'
-                      : company.filing_type === 'annual' ? 'Annual report'
-                      : company.filing_type === 'drhp' ? 'DRHP' : ''}
+                    {company.filing_type==='quarterly'?'Quarterly result':company.filing_type==='annual'?'Annual report':company.filing_type==='drhp'?'DRHP':''}
                   </span>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Verdict Hero — full width */}
-          <div className={`${styles.verdictHero} ${V.color} ${styles.fullWidth}`}>
-            <div className={styles.verdictLeft}>
+          {/* Verdict — full width */}
+          <div className={styles.fullWidth}>
+            <div className={`${styles.verdictHero} ${V.color}`}>
               <p className={styles.verdictLabel}>Our assessment</p>
-              <div className={styles.verdictBadge}>
-                <VIcon size={16} strokeWidth={2.5} />
-                {V.label}
-              </div>
+              <div className={styles.verdictBadge}><VIcon size={16} strokeWidth={2.5} />{V.label}</div>
               <p className={styles.verdictReason}>{tldr?.verdict_reason}</p>
             </div>
           </div>
 
-          {/* TL;DR */}
+          {/* 1. TL;DR */}
           <CollapsibleSection title="TL;DR — Key highlights" icon={Zap}>
             <ul className={styles.bulletList}>
-              {(tldr?.bullets || []).map((b, i) => (
-                <li key={i} className={styles.bulletItem}>
-                  <span className={styles.bulletDot} />
-                  {b}
-                </li>
+              {(tldr?.bullets||[]).map((b,i)=>(
+                <li key={i} className={styles.bulletItem}><span className={styles.bulletDot}/>{b}</li>
               ))}
             </ul>
             {tldr?.investor_takeaway && (
-              <div className={styles.takeaway}>
-                <Eye size={13} />
-                <span>{tldr.investor_takeaway}</span>
-              </div>
+              <div className={styles.takeaway}><Eye size={13}/><span>{tldr.investor_takeaway}</span></div>
             )}
           </CollapsibleSection>
 
-          {/* Financial Snapshot */}
+          {/* 2. Financial snapshot */}
           <CollapsibleSection title="Financial snapshot" icon={BarChart2}>
-            {/* Period toggle */}
             {hasYtd && (
-              <div className={styles.toggleRow}>
-                <button
-                  className={`${styles.toggleBtn} ${snapshotView === 'quarterly' ? styles.toggleActive : ''}`}
-                  onClick={() => setSnapshotView('quarterly')}
-                >
-                  {financials?.revenue?.period || 'Quarterly'}
-                </button>
-                <button
-                  className={`${styles.toggleBtn} ${snapshotView === 'ytd' ? styles.toggleActive : ''}`}
-                  onClick={() => setSnapshotView('ytd')}
-                >
-                  {financials?.ytd?.period_label || 'Year to date'}
-                </button>
-              </div>
+              <ToggleRow
+                options={[
+                  { key: 'quarterly', label: f.revenue?.period || 'Quarterly' },
+                  { key: 'ytd',       label: yt.period_label  || 'Year to date' },
+                ]}
+                value={snapshotView} onChange={setSnapshotView}
+              />
             )}
-
-            {snapshotView === 'quarterly' ? (
-              <div className={styles.metricsGrid}>
-                <MetricCard
-                  label="Revenue"
-                  value={fmt(financials?.revenue?.value)}
-                  change={revenueChange}
-                  prevLabel={financials?.revenue?.prev_period || 'Prior period'}
-                  prevValue={fmt(financials?.revenue?.prev)}
-                />
-                <MetricCard
-                  label="EPS"
-                  value={financials?.eps?.value != null ? `₹${financials.eps.value}` : '—'}
-                  change={pct(financials?.eps?.value, financials?.eps?.prev)}
-                  prevLabel={financials?.eps?.prev_period || 'Prior period'}
-                  prevValue={financials?.eps?.prev != null ? `₹${financials.eps.prev}` : '—'}
-                />
-                {financials?.ebitda?.value != null && (
-                  <MetricCard
-                    label="EBITDA"
-                    value={fmt(financials.ebitda.value)}
-                    change={pct(financials.ebitda.value, financials.ebitda.prev)}
-                    prevLabel={financials?.revenue?.prev_period || 'Prior period'}
-                    prevValue={fmt(financials.ebitda.prev)}
-                  />
-                )}
-                {financials?.ebitda?.margin != null && (
-                  <MetricCard
-                    label="EBITDA margin"
-                    value={fmtPct(financials.ebitda.margin)}
-                    change={financials.ebitda.prev_margin != null
-                      ? (financials.ebitda.margin - financials.ebitda.prev_margin).toFixed(1) + ' pp'
-                      : null}
-                    isAbsolute
-                    prevLabel={financials?.revenue?.prev_period || 'Prior period'}
-                    prevValue={fmtPct(financials.ebitda.prev_margin)}
-                  />
-                )}
-                <MetricCard
-                  label="Net profit"
-                  value={fmt(financials?.net_profit?.value)}
-                  change={profitChange}
-                  prevLabel={financials?.net_profit?.prev_period || 'Prior period'}
-                  prevValue={fmt(financials?.net_profit?.prev)}
-                />
-                <MetricCard
-                  label="Net margin"
-                  value={fmtPct(financials?.net_margin?.value)}
-                  change={financials?.net_margin?.value != null && financials?.net_margin?.prev != null
-                    ? (financials.net_margin.value - financials.net_margin.prev).toFixed(1) + ' pp'
-                    : null}
-                  isAbsolute
-                  prevLabel={financials?.revenue?.prev_period || 'Prior period'}
-                  prevValue={fmtPct(financials?.net_margin?.prev)}
-                />
-              </div>
-            ) : (
-              <div className={styles.metricsGrid}>
-                {ytdCards.map((c, i) => (
-                  <MetricCard
-                    key={i}
-                    label={c.label}
-                    value={c.value}
-                    change={null}
-                    prevLabel={financials?.ytd?.period_label}
-                    prevValue={null}
-                  />
-                ))}
-              </div>
-            )}
-
-            {financials?.ebitda?.calculation_note && (
+            {renderMetricCards(snapshotView)}
+            {f.ebitda?.calculation_note && (
               <p className={styles.ebitdaNote}>EBITDA = PBT + Finance Cost + Depreciation − Other Income</p>
             )}
-            {financials?.commentary && (
-              <p className={styles.commentary}>{financials.commentary}</p>
-            )}
+            {snapshotView==='quarterly' && f.commentary  && <p className={styles.commentary}>{f.commentary}</p>}
+            {snapshotView==='ytd'       && yt.commentary && <p className={styles.commentary}>{yt.commentary}</p>}
           </CollapsibleSection>
 
-          {/* Performance Trend */}
-          {trendData.length > 1 && (
+          {/* 3. Performance trend */}
+          {quarterlyTrend.length > 1 && (
             <CollapsibleSection title="Performance trend" icon={TrendingUp}>
               <div className={styles.trendMeta}>
-                <span className={`${styles.trendBadge} ${
-                  trend?.direction === 'improving' ? styles.trendUp :
-                  trend?.direction === 'deteriorating' ? styles.trendDown : styles.trendFlat
-                }`}>
-                  {trend?.direction || 'mixed'}
+                <span className={`${styles.trendBadge} ${trend?.direction==='improving'?styles.trendUp:trend?.direction==='deteriorating'?styles.trendDown:styles.trendFlat}`}>
+                  {trend?.direction||'mixed'}
                 </span>
                 {trend?.summary && <p className={styles.trendSummary}>{trend.summary}</p>}
               </div>
 
+              {/* Period toggle — only when YTD data exists */}
+              {ytdTrend.length > 0 && (
+                <ToggleRow
+                  options={[
+                    { key: 'quarterly', label: 'Quarterly' },
+                    { key: 'ytd',       label: yt.period_label || 'Year to date' },
+                  ]}
+                  value={trendPeriod}
+                  onChange={(v) => { setTrendPeriod(v); setTrendMetric('revenue'); }}
+                />
+              )}
+
               {/* Metric toggle */}
-              <div className={styles.toggleRow}>
-                {[
+              <ToggleRow
+                options={[
                   { key: 'revenue', label: 'Revenue' },
                   ...(hasEbitdaTrend ? [{ key: 'ebitda', label: 'EBITDA' }] : []),
-                  { key: 'profit', label: 'Net profit' },
-                ].map(m => (
-                  <button
-                    key={m.key}
-                    className={`${styles.toggleBtn} ${trendMetric === m.key ? styles.toggleActive : ''}`}
-                    onClick={() => setTrendMetric(m.key)}
-                  >
-                    {m.label}
-                  </button>
-                ))}
-              </div>
+                  { key: 'profit',  label: 'Net profit' },
+                ]}
+                value={trendMetric} onChange={setTrendMetric}
+              />
 
               <div className={styles.chartWrap}>
                 <ResponsiveContainer width="100%" height={180}>
-                  <BarChart data={trendData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                    <XAxis dataKey="period" tick={{ fontSize: 10, fill: 'var(--ink-4)' }} tickLine={false} axisLine={false} />
-                    <YAxis tick={{ fontSize: 10, fill: 'var(--ink-4)' }} tickLine={false} axisLine={false} />
+                  <BarChart data={trendData} margin={{ top:4, right:4, left:-20, bottom:0 }}>
+                    <XAxis dataKey="period" tick={{ fontSize:10, fill:'var(--ink-4)' }} tickLine={false} axisLine={false}/>
+                    <YAxis tick={{ fontSize:10, fill:'var(--ink-4)' }} tickLine={false} axisLine={false}/>
                     <Tooltip
-                      contentStyle={{ background: 'var(--paper)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }}
-                      formatter={(v) => v != null ? [`₹${v} Cr`] : ['—']}
+                      contentStyle={{ background:'var(--paper)', border:'1px solid var(--border)', borderRadius:8, fontSize:12 }}
+                      formatter={(v) => v!=null?[`₹${v} Cr`]:['—']}
                     />
-                    <Bar
-                      dataKey={trendMetric}
-                      name={trendMetric === 'revenue' ? 'Revenue' : trendMetric === 'ebitda' ? 'EBITDA' : 'Net profit'}
-                      radius={[3, 3, 0, 0]}
-                      maxBarSize={32}
-                    >
-                      {trendData.map((_, i) => (
-                        <Cell key={i} fill={i === trendData.length - 1 ? 'var(--accent)' : 'var(--paper-3)'} />
+                    <Bar dataKey={trendMetric}
+                      name={trendMetric==='revenue'?'Revenue':trendMetric==='ebitda'?'EBITDA':'Net profit'}
+                      radius={[3,3,0,0]} maxBarSize={32}>
+                      {trendData.map((_,i)=>(
+                        <Cell key={i} fill={i===trendData.length-1?'var(--accent)':'var(--paper-3)'}/>
                       ))}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
                 <p className={styles.chartLabel}>
-                  {trendMetric === 'revenue' ? 'Revenue' : trendMetric === 'ebitda' ? 'EBITDA' : 'Net profit'} (₹ Cr) — latest bar highlighted
+                  {trendMetric==='revenue'?'Revenue':trendMetric==='ebitda'?'EBITDA':'Net profit'} (₹ Cr) — latest bar highlighted
                 </p>
               </div>
             </CollapsibleSection>
           )}
 
-          {/* Business Overview */}
+          {/* 4. What this company does */}
           <CollapsibleSection title="What this company actually does" icon={FileText}>
             <p className={styles.bodyText}>{business?.what_they_do}</p>
-            {business?.key_segments?.length > 0 && (
+            {business?.key_segments?.length>0 && (
               <div className={styles.segmentList}>
                 <p className={styles.subLabel}>Revenue segments</p>
                 <div className={styles.chipRow}>
-                  {business.key_segments.map((s, i) => (
-                    <span key={i} className={styles.segChip}>{s}</span>
-                  ))}
+                  {business.key_segments.map((s,i)=><span key={i} className={styles.segChip}>{s}</span>)}
                 </div>
               </div>
             )}
             {business?.key_customers_or_geographies && (
-              <p className={styles.bodyTextSmall}>
-                <strong>Key customers / geographies:</strong> {business.key_customers_or_geographies}
-              </p>
+              <p className={styles.bodyTextSmall}><strong>Key customers / geographies:</strong> {business.key_customers_or_geographies}</p>
             )}
             {business?.moat && (
               <div className={styles.moatBox}>
-                <Shield size={13} />
+                <Shield size={13}/>
                 <div>
                   <p className={styles.moatLabel}>Competitive moat</p>
                   <p className={styles.moatText}>{business.moat}</p>
@@ -402,7 +347,117 @@ export default function ReportScreen({ report, onReset }) {
             )}
           </CollapsibleSection>
 
-          {/* ELI15 */}
+          {/* 5. Red flag check */}
+          <CollapsibleSection title="Red flag check" icon={Shield}
+            badge={red_flags?.filter(f=>f.status!=='clear').length||null}>
+            <div className={styles.flagList}>
+              {(red_flags||[]).map((f,i)=>{
+                const cfg=STATUS_CONFIG[f.status]||STATUS_CONFIG.watch;
+                return (
+                  <div key={i} className={styles.flagRow}>
+                    <span className={`${styles.flagPill} ${cfg.cls}`}>{cfg.label}</span>
+                    <div>
+                      <p className={styles.flagTitle}>{f.flag}</p>
+                      {f.detail&&<p className={styles.flagDetail}>{f.detail}</p>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CollapsibleSection>
+
+          {/* 6. Risks to watch */}
+          <CollapsibleSection title="Risks to watch" icon={AlertTriangle}
+            badge={risks?.filter(r=>r.severity==='high').length?`${risks.filter(r=>r.severity==='high').length} high`:null}>
+            {(risks||[]).map((r,i)=>(
+              <div key={i} className={styles.riskItem}>
+                <span className={`${styles.riskDot} ${SEV_CONFIG[r.severity]||''}`}/>
+                <div>
+                  <p className={styles.riskTitle}>{r.title}</p>
+                  <p className={styles.riskDetail}>{r.detail}</p>
+                </div>
+              </div>
+            ))}
+          </CollapsibleSection>
+
+          {/* 7. Growth drivers */}
+          <CollapsibleSection title="Growth drivers & positives" icon={TrendingUp}>
+            {(positives||[]).map((p,i)=>(
+              <div key={i} className={styles.positiveItem}>
+                <CheckCircle size={14} className={styles.positiveIcon}/>
+                <div>
+                  <p className={styles.riskTitle}>{p.title}</p>
+                  <p className={styles.riskDetail}>{p.detail}</p>
+                </div>
+              </div>
+            ))}
+          </CollapsibleSection>
+
+          {/* 7b. Management commentary — only when applicable */}
+          {hasMgmtComm && (
+            <CollapsibleSection title="Management commentary — decoded" icon={MessageSquare} defaultOpen={false}>
+              {management_commentary?.tone_note && (
+                <p className={styles.toneNote}>
+                  <strong>Overall tone:</strong> {management_commentary.tone} — {management_commentary.tone_note}
+                </p>
+              )}
+              <div className={styles.commentaryList}>
+                {(management_commentary.key_statements||[]).map((s,i)=>(
+                  <div key={i} className={styles.commentaryItem}>
+                    <p className={styles.commentarySaid}>"{s.said}"</p>
+                    <p className={styles.commentaryMeans}>
+                      <span className={styles.meansLabel}>What this means:</span> {s.means}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </CollapsibleSection>
+          )}
+
+          {/* 8. What changed */}
+          {what_changed && (
+            <CollapsibleSection title="What changed this period" icon={AlertCircle}>
+              <p className={styles.bodyText}>{what_changed}</p>
+            </CollapsibleSection>
+          )}
+
+          {/* 9. Key ratios */}
+          <CollapsibleSection title="Key ratios — explained" icon={BarChart2} defaultOpen={false}>
+            <div className={styles.ratioList}>
+              {(ratios||[]).map((r,i)=>(
+                <div key={i} className={styles.ratioRow}>
+                  <div className={styles.ratioLeft}>
+                    <span className={styles.ratioName}>{r.name}</span>
+                    <span className={styles.ratioBenchmark}>{r.benchmark}</span>
+                  </div>
+                  <div className={styles.ratioRight}>
+                    <span className={styles.ratioValue}>{r.value}</span>
+                    <span className={`${styles.ratioAssess} ${ASSESS_CONFIG[r.assessment]||''}`}>{r.assessment}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CollapsibleSection>
+
+          {/* 10. Bear / Bull */}
+          <CollapsibleSection title="Bear case vs bull case" icon={Target} defaultOpen={false}>
+            <div className={styles.bearBullGrid}>
+              <div className={styles.bullBox}>
+                <p className={styles.bbLabel}>3 reasons to be optimistic</p>
+                {(bear_bull?.bull||[]).map((b,i)=>(
+                  <div key={i} className={styles.bbItem}><span className={styles.bbNum}>{i+1}</span><span>{b}</span></div>
+                ))}
+              </div>
+              <div className={styles.bearBox}>
+                <p className={styles.bbLabel}>3 reasons to be cautious</p>
+                {(bear_bull?.bear||[]).map((b,i)=>(
+                  <div key={i} className={styles.bbItem}><span className={styles.bbNum}>{i+1}</span><span>{b}</span></div>
+                ))}
+              </div>
+            </div>
+          </CollapsibleSection>
+
+          {/* 11. ELI15 */}
           {eli15 && (
             <CollapsibleSection title="Explain it like I'm 15" icon={Smile} defaultOpen={false}>
               <div className={styles.eli15Wrap}>
@@ -422,237 +477,69 @@ export default function ReportScreen({ report, onReset }) {
             </CollapsibleSection>
           )}
 
-          {/* Red Flags */}
-          <CollapsibleSection title="Red flag check" icon={Shield}
-            badge={red_flags?.filter(f => f.status !== 'clear').length || null}>
-            <div className={styles.flagList}>
-              {(red_flags || []).map((f, i) => {
-                const cfg = STATUS_CONFIG[f.status] || STATUS_CONFIG.watch;
-                return (
-                  <div key={i} className={styles.flagRow}>
-                    <span className={`${styles.flagPill} ${cfg.cls}`}>{cfg.label}</span>
-                    <div>
-                      <p className={styles.flagTitle}>{f.flag}</p>
-                      {f.detail && <p className={styles.flagDetail}>{f.detail}</p>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CollapsibleSection>
-
-          {/* Risks */}
-          <CollapsibleSection title="Risks to watch" icon={AlertTriangle}
-            badge={risks?.filter(r => r.severity === 'high').length
-              ? `${risks.filter(r => r.severity === 'high').length} high` : null}>
-            {(risks || []).map((r, i) => (
-              <div key={i} className={styles.riskItem}>
-                <span className={`${styles.riskDot} ${SEV_CONFIG[r.severity] || ''}`} />
-                <div>
-                  <p className={styles.riskTitle}>{r.title}</p>
-                  <p className={styles.riskDetail}>{r.detail}</p>
-                </div>
-              </div>
-            ))}
-          </CollapsibleSection>
-
-          {/* Positives */}
-          <CollapsibleSection title="Growth drivers & positives" icon={TrendingUp}>
-            {(positives || []).map((p, i) => (
-              <div key={i} className={styles.positiveItem}>
-                <CheckCircle size={14} className={styles.positiveIcon} />
-                <div>
-                  <p className={styles.riskTitle}>{p.title}</p>
-                  <p className={styles.riskDetail}>{p.detail}</p>
-                </div>
-              </div>
-            ))}
-          </CollapsibleSection>
-
-          {/* What Changed */}
-          {what_changed && (
-            <CollapsibleSection title="What changed this period" icon={AlertCircle}>
-              <p className={styles.bodyText}>{what_changed}</p>
-            </CollapsibleSection>
-          )}
-
-          {/* Management Commentary — only show if available */}
-          {management_commentary?.available !== false && management_commentary?.key_statements?.length > 0 && (
-            <CollapsibleSection title="Management commentary — decoded" icon={MessageSquare} defaultOpen={false}>
-              {management_commentary?.tone_note && (
-                <p className={styles.toneNote}>
-                  <strong>Overall tone:</strong> {management_commentary.tone} — {management_commentary.tone_note}
-                </p>
-              )}
-              <div className={styles.commentaryList}>
-                {(management_commentary.key_statements || []).map((s, i) => (
-                  <div key={i} className={styles.commentaryItem}>
-                    <p className={styles.commentarySaid}>"{s.said}"</p>
-                    <p className={styles.commentaryMeans}>
-                      <span className={styles.meansLabel}>What this means:</span> {s.means}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </CollapsibleSection>
-          )}
-
-          {/* Key Ratios */}
-          <CollapsibleSection title="Key ratios — explained" icon={BarChart2} defaultOpen={false}>
-            <div className={styles.ratioList}>
-              {(ratios || []).map((r, i) => (
-                <div key={i} className={styles.ratioRow}>
-                  <div className={styles.ratioLeft}>
-                    <span className={styles.ratioName}>{r.name}</span>
-                    <span className={styles.ratioBenchmark}>{r.benchmark}</span>
-                  </div>
-                  <div className={styles.ratioRight}>
-                    <span className={styles.ratioValue}>{r.value}</span>
-                    <span className={`${styles.ratioAssess} ${ASSESS_CONFIG[r.assessment] || ''}`}>
-                      {r.assessment}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CollapsibleSection>
-
-          {/* Bear / Bull */}
-          <CollapsibleSection title="Bear case vs bull case" icon={Target} defaultOpen={false}>
-            <div className={styles.bearBullGrid}>
-              <div className={styles.bullBox}>
-                <p className={styles.bbLabel}>3 reasons to be optimistic</p>
-                {(bear_bull?.bull || []).map((b, i) => (
-                  <div key={i} className={styles.bbItem}>
-                    <span className={styles.bbNum}>{i + 1}</span>
-                    <span>{b}</span>
-                  </div>
-                ))}
-              </div>
-              <div className={styles.bearBox}>
-                <p className={styles.bbLabel}>3 reasons to be cautious</p>
-                {(bear_bull?.bear || []).map((b, i) => (
-                  <div key={i} className={styles.bbItem}>
-                    <span className={styles.bbNum}>{i + 1}</span>
-                    <span>{b}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </CollapsibleSection>
-
-          {/* Hidden Insights */}
-          {hidden_insights?.length > 0 && (
+          {/* 12. Hidden insights */}
+          {hidden_insights?.length>0 && (
             <CollapsibleSection title="Hidden insights from the footnotes" icon={Lightbulb} defaultOpen={false}>
               <ul className={styles.insightList}>
-                {hidden_insights.map((insight, i) => (
-                  <li key={i} className={styles.insightItem}>
-                    <span className={styles.insightDot} />
-                    {insight}
-                  </li>
+                {hidden_insights.map((insight,i)=>(
+                  <li key={i} className={styles.insightItem}><span className={styles.insightDot}/>{insight}</li>
                 ))}
               </ul>
             </CollapsibleSection>
           )}
 
-          {/* DRHP Extras */}
+          {/* DRHP extras */}
           {drhp_extras && (
             <CollapsibleSection title="IPO deep dive" icon={FileText}>
               <div className={styles.ipoGrid}>
-                {drhp_extras.issue_size && (
-                  <div className={styles.ipoStat}>
-                    <p className={styles.ipoStatLabel}>Issue size</p>
-                    <p className={styles.ipoStatValue}>{drhp_extras.issue_size}</p>
-                  </div>
-                )}
-                {drhp_extras.issue_type && (
-                  <div className={styles.ipoStat}>
-                    <p className={styles.ipoStatLabel}>Issue type</p>
-                    <p className={styles.ipoStatValue}>{drhp_extras.issue_type}</p>
-                  </div>
-                )}
+                {drhp_extras.issue_size&&<div className={styles.ipoStat}><p className={styles.ipoStatLabel}>Issue size</p><p className={styles.ipoStatValue}>{drhp_extras.issue_size}</p></div>}
+                {drhp_extras.issue_type&&<div className={styles.ipoStat}><p className={styles.ipoStatLabel}>Issue type</p><p className={styles.ipoStatValue}>{drhp_extras.issue_type}</p></div>}
               </div>
-              {drhp_extras.use_of_funds?.length > 0 && (
+              {drhp_extras.use_of_funds?.length>0&&(
                 <div className={styles.ipoSection}>
                   <p className={styles.ipoSectionLabel}>Use of IPO proceeds</p>
-                  <ul className={styles.ipoFundsList}>
-                    {drhp_extras.use_of_funds.map((f, i) => <li key={i}>{f}</li>)}
-                  </ul>
-                  {drhp_extras.use_of_funds_verdict && (
-                    <p className={styles.ipoVerdict}>{drhp_extras.use_of_funds_verdict}</p>
-                  )}
+                  <ul className={styles.ipoFundsList}>{drhp_extras.use_of_funds.map((f,i)=><li key={i}>{f}</li>)}</ul>
+                  {drhp_extras.use_of_funds_verdict&&<p className={styles.ipoVerdict}>{drhp_extras.use_of_funds_verdict}</p>}
                 </div>
               )}
-              {drhp_extras.promoters?.length > 0 && (
+              {drhp_extras.promoters?.length>0&&(
                 <div className={styles.ipoSection}>
                   <p className={styles.ipoSectionLabel}>Promoters</p>
-                  {drhp_extras.promoters.map((p, i) => (
+                  {drhp_extras.promoters.map((p,i)=>(
                     <div key={i} className={styles.promoterRow}>
                       <span>{p.name}</span>
                       <span className={styles.promoterRole}>{p.role}</span>
-                      {p.stake_pct != null && <span className={styles.promoterStake}>{p.stake_pct}%</span>}
+                      {p.stake_pct!=null&&<span className={styles.promoterStake}>{p.stake_pct}%</span>}
                     </div>
                   ))}
-                  {drhp_extras.promoter_assessment && (
-                    <p className={styles.commentary}>{drhp_extras.promoter_assessment}</p>
-                  )}
+                  {drhp_extras.promoter_assessment&&<p className={styles.commentary}>{drhp_extras.promoter_assessment}</p>}
                 </div>
               )}
-              {drhp_extras.related_party_concerns && (
+              {drhp_extras.related_party_concerns&&(
                 <div className={`${styles.flagRow} ${styles.flagRowAlert}`}>
                   <span className={`${styles.flagPill} ${styles.flagWatch}`}>Related parties</span>
                   <p className={styles.flagDetail}>{drhp_extras.related_party_concerns}</p>
                 </div>
               )}
-              {drhp_extras.ipo_verdict && (
-                <div className={`${styles.verdictHero} ${
-                  drhp_extras.ipo_verdict === 'apply' ? styles.verdictStrong :
-                  drhp_extras.ipo_verdict === 'avoid' ? styles.verdictRisky : styles.verdictMixed
-                }`} style={{ marginTop: '1rem' }}>
-                  <div className={styles.verdictBadge} style={{ textTransform: 'capitalize' }}>
-                    IPO verdict: {drhp_extras.ipo_verdict}
-                  </div>
-                  {drhp_extras.ipo_verdict_reason && (
-                    <p className={styles.verdictReason}>{drhp_extras.ipo_verdict_reason}</p>
-                  )}
+              {drhp_extras.ipo_verdict&&(
+                <div className={`${styles.verdictHero} ${drhp_extras.ipo_verdict==='apply'?styles.verdictStrong:drhp_extras.ipo_verdict==='avoid'?styles.verdictRisky:styles.verdictMixed}`} style={{marginTop:'1rem'}}>
+                  <div className={styles.verdictBadge} style={{textTransform:'capitalize'}}>IPO verdict: {drhp_extras.ipo_verdict}</div>
+                  {drhp_extras.ipo_verdict_reason&&<p className={styles.verdictReason}>{drhp_extras.ipo_verdict_reason}</p>}
                 </div>
               )}
             </CollapsibleSection>
           )}
 
           {/* Footer — full width */}
-          <div className={`${styles.footer} ${styles.fullWidth}`}>
-            <p>FilingLens analyses SEBI filings using AI. This is not investment advice. Always do your own research before making any investment decision.</p>
-            <button className={styles.newAnalysisBtn} onClick={onReset}>
-              Analyse another filing
-            </button>
+          <div className={styles.fullWidth}>
+            <div className={styles.footer}>
+              <p>FilingLens analyses SEBI filings using AI. This is not investment advice. Always do your own research before making any investment decision.</p>
+              <button className={styles.newAnalysisBtn} onClick={onReset}>Analyse another filing</button>
+            </div>
           </div>
 
         </div>
       </div>
     </>
-  );
-}
-
-function MetricCard({ label, value, change, prevLabel, prevValue, isAbsolute, subNote }) {
-  const changeNum = parseFloat(change);
-  const isPos = changeNum > 0;
-  const isNeg = changeNum < 0;
-  const changeLabel = isAbsolute ? change : change ? `${isPos ? '+' : ''}${change}%` : null;
-
-  return (
-    <div className={styles.metricCard}>
-      <p className={styles.metricLabel}>{label}</p>
-      <p className={styles.metricValue}>{value}</p>
-      {subNote && <p className={styles.metricSubNote}>{subNote}</p>}
-      {changeLabel && (
-        <p className={`${styles.metricChange} ${isPos ? styles.changePos : isNeg ? styles.changeNeg : styles.changeFlat}`}>
-          {changeLabel} vs {prevLabel || 'prior'}
-        </p>
-      )}
-      {prevValue && prevValue !== '—' && (
-        <p className={styles.metricPrev}>{prevLabel || 'Prior period'}: {prevValue}</p>
-      )}
-    </div>
   );
 }
