@@ -58,7 +58,7 @@
 .container {
   max-width: 700px;
   margin: 0 auto;
-  padding: 1.5rem 1rem 0;
+  padding: 1.5rem 1rem 2rem;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -747,22 +747,33 @@
   color: var(--ink-2);
 }
 
-/* Desktop two-column masonry layout */
+/* Desktop two-column masonry layout using CSS columns */
 @media (min-width: 900px) {
   .container {
     max-width: 1120px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    /* Switch to columns layout for true masonry behaviour */
+    display: block;
+    columns: 2;
     column-gap: 14px;
-    align-items: start;
-    grid-auto-rows: min-content;
+    padding: 1.5rem 1rem 2rem;
   }
 
-  .companyHeader { grid-column: 1 / -1; }
-  .verdictHero   { grid-column: 1 / -1; }
-  .footer        { grid-column: 1 / -1; }
-  .section       { align-self: start; }
+  /* Full-width items break out of columns */
+  .fullWidth {
+    column-span: all;
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  /* Each section stays together and sits at top of its column cell */
+  .section {
+    break-inside: avoid;
+    margin-bottom: 10px;
+    display: inline-block;
+    width: 100%;
+  }
 }
+
 /* ─── Toggle buttons ────────────────────────────────────── */
 .toggleRow {
   display: flex;
