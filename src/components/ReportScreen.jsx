@@ -74,10 +74,9 @@ export default function ReportScreen({ report, onReset }) {
     management_commentary, ratios, red_flags, what_changed,
     hidden_insights, bear_bull, eli15, drhp_extras } = report;
 
-    useEffect(() => {
-      saveToHistory(report);
-      window.scrollTo(0, 0);
-    }, [report]);
+  useEffect(() => {
+    saveToHistory(report);
+  }, [report]);
 
   const V = VERDICT_CONFIG[tldr?.verdict] || VERDICT_CONFIG.mixed;
   const VIcon = V.icon;
@@ -100,7 +99,7 @@ export default function ReportScreen({ report, onReset }) {
   }
 
   return (
-    <>
+    <div className={styles.page}>
       <div className={styles.topbar}>
         <button className={styles.backBtn} onClick={onReset}>
           <ArrowLeft size={14} /> New filing
@@ -125,21 +124,9 @@ export default function ReportScreen({ report, onReset }) {
         </div>
       )}
 
-      <div className={styles.page}>
-      <div className={styles.container}>
-
-      {report._isDemo && (
-        <div className={styles.demoBanner}>
-          This is a sample report — upload your own PDF to analyse any SEBI filing
-        </div>
-      )}
-
       <div className={styles.container}>
         {/* Company Header */}
         <div className={styles.companyHeader}>
-          <div className={styles.companyAvatar}>
-            {(company?.name || '?').split(' ').slice(0, 2).map(w => w[0]).join('')}
-          </div>
           <div className={styles.companyInfo}>
             <h1 className={styles.companyName}>{company?.name || 'Company'}</h1>
             <div className={styles.companyMeta}>
@@ -147,6 +134,7 @@ export default function ReportScreen({ report, onReset }) {
               {company?.exchange && <span className={styles.chip}>{company.exchange}</span>}
               {company?.sector && <span className={styles.chip}>{company.sector}</span>}
               {company?.filing_period && <span className={styles.chip}>{company.filing_period}</span>}
+              {company?.filing_type && <span className={styles.chipType}>{company.filing_type === 'quarterly' ? 'Quarterly result' : company.filing_type === 'annual' ? 'Annual report' : company.filing_type === 'drhp' ? 'DRHP' : ''}</span>}
             </div>
           </div>
         </div>
@@ -154,6 +142,7 @@ export default function ReportScreen({ report, onReset }) {
         {/* Verdict Hero */}
         <div className={`${styles.verdictHero} ${V.color}`}>
           <div className={styles.verdictLeft}>
+            <p className={styles.verdictLabel}>Our assessment</p>
             <div className={styles.verdictBadge}>
               <VIcon size={16} strokeWidth={2.5} />
               {V.label}
@@ -187,34 +176,55 @@ export default function ReportScreen({ report, onReset }) {
               label={`Revenue (${financials?.revenue?.period || ''})`}
               value={fmt(financials?.revenue?.value)}
               change={revenueChange}
-              prevLabel={financials?.revenue?.prev_period}
+              prevLabel={financials?.revenue?.prev_period || 'Prior period'}
               prevValue={fmt(financials?.revenue?.prev)}
             />
             <MetricCard
-              label="Net profit"
+              label={`Net profit (${financials?.net_profit?.period || ''})`}
               value={fmt(financials?.net_profit?.value)}
               change={profitChange}
-              prevLabel="Prior period"
+              prevLabel={financials?.net_profit?.prev_period || 'Prior period'}
               prevValue={fmt(financials?.net_profit?.prev)}
             />
+            {financials?.ebitda?.value != null && (
+              <MetricCard
+                label={`EBITDA (${financials?.revenue?.period || ''})`}
+                value={fmt(financials.ebitda.value)}
+                change={pct(financials.ebitda.value, financials.ebitda.prev)}
+                prevLabel={financials?.revenue?.prev_period || 'Prior period'}
+                prevValue={fmt(financials.ebitda.prev)}
+                subNote={financials.ebitda.margin != null ? `Margin: ${fmtPct(financials.ebitda.margin)}` : null}
+              />
+            )}
             <MetricCard
-              label="Operating margin"
-              value={fmtPct(financials?.operating_margin?.value)}
-              change={financials?.operating_margin?.value != null && financials?.operating_margin?.prev != null
-                ? (financials.operating_margin.value - financials.operating_margin.prev).toFixed(1) + ' pp'
+              label={`Net margin (${financials?.revenue?.period || ''})`}
+              value={fmtPct(financials?.net_margin?.value)}
+              change={financials?.net_margin?.value != null && financials?.net_margin?.prev != null
+                ? (financials.net_margin.value - financials.net_margin.prev).toFixed(1) + ' pp'
                 : null}
               isAbsolute
-              prevLabel="Prior period"
-              prevValue={fmtPct(financials?.operating_margin?.prev)}
+              prevLabel={financials?.revenue?.prev_period || 'Prior period'}
+              prevValue={fmtPct(financials?.net_margin?.prev)}
             />
             <MetricCard
-              label="EPS"
+              label={`EPS (${financials?.eps?.period || ''})`}
               value={financials?.eps?.value != null ? `₹${financials.eps.value}` : '—'}
               change={pct(financials?.eps?.value, financials?.eps?.prev)}
-              prevLabel="Prior period"
+              prevLabel={financials?.eps?.prev_period || 'Prior period'}
               prevValue={financials?.eps?.prev != null ? `₹${financials.eps.prev}` : '—'}
             />
           </div>
+          {financials?.ebitda?.calculation_note && (
+            <p className={styles.ebitdaNote}>EBITDA = PBT + Finance Cost + Depreciation − Other Income</p>
+          )}
+          {financials?.ytd?.revenue && (
+            <div className={styles.ytdRow}>
+              <span className={styles.ytdLabel}>{financials.ytd.period_label}</span>
+              <span className={styles.ytdStat}>Revenue: {fmt(financials.ytd.revenue)}</span>
+              {financials.ytd.net_profit && <span className={styles.ytdStat}>PAT: {fmt(financials.ytd.net_profit)}</span>}
+              {financials.ytd.ebitda && <span className={styles.ytdStat}>EBITDA: {fmt(financials.ytd.ebitda)}</span>}
+            </div>
+          )}
           {financials?.commentary && (
             <p className={styles.commentary}>{financials.commentary}</p>
           )}
@@ -356,24 +366,26 @@ export default function ReportScreen({ report, onReset }) {
           </CollapsibleSection>
         )}
 
-        {/* Management Commentary */}
-        <CollapsibleSection title="Management commentary — decoded" icon={MessageSquare} defaultOpen={false}>
-          {management_commentary?.tone_note && (
-            <p className={styles.toneNote}>
-              <strong>Overall tone:</strong> {management_commentary.tone} — {management_commentary.tone_note}
-            </p>
-          )}
-          <div className={styles.commentaryList}>
-            {(management_commentary?.key_statements || []).map((s, i) => (
-              <div key={i} className={styles.commentaryItem}>
-                <p className={styles.commentarySaid}>"{s.said}"</p>
-                <p className={styles.commentaryMeans}>
-                  <span className={styles.meansLabel}>What this means:</span> {s.means}
-                </p>
-              </div>
-            ))}
-          </div>
-        </CollapsibleSection>
+        {/* Management Commentary — only show if available */}
+        {management_commentary?.available !== false && management_commentary?.key_statements?.length > 0 && (
+          <CollapsibleSection title="Management commentary — decoded" icon={MessageSquare} defaultOpen={false}>
+            {management_commentary?.tone_note && (
+              <p className={styles.toneNote}>
+                <strong>Overall tone:</strong> {management_commentary.tone} — {management_commentary.tone_note}
+              </p>
+            )}
+            <div className={styles.commentaryList}>
+              {(management_commentary.key_statements || []).map((s, i) => (
+                <div key={i} className={styles.commentaryItem}>
+                  <p className={styles.commentarySaid}>"{s.said}"</p>
+                  <p className={styles.commentaryMeans}>
+                    <span className={styles.meansLabel}>What this means:</span> {s.means}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </CollapsibleSection>
+        )}
 
         {/* Key Ratios */}
         <CollapsibleSection title="Key ratios — explained" icon={BarChart2} defaultOpen={false}>
@@ -507,16 +519,14 @@ export default function ReportScreen({ report, onReset }) {
           <button className={styles.newAnalysisBtn} onClick={onReset}>
             Analyse another filing
           </button>
-          </div>
-      </div>
+        </div>
       </div>
     </div>
-    </>
   );
 }
 
-function MetricCard({ label, value, change, prevLabel, prevValue, isAbsolute }) {
-  const changeNum = isAbsolute ? parseFloat(change) : parseFloat(change);
+function MetricCard({ label, value, change, prevLabel, prevValue, isAbsolute, subNote }) {
+  const changeNum = parseFloat(change);
   const isPos = changeNum > 0;
   const isNeg = changeNum < 0;
   const changeLabel = isAbsolute ? change : change ? `${isPos ? '+' : ''}${change}%` : null;
@@ -525,13 +535,14 @@ function MetricCard({ label, value, change, prevLabel, prevValue, isAbsolute }) 
     <div className={styles.metricCard}>
       <p className={styles.metricLabel}>{label}</p>
       <p className={styles.metricValue}>{value}</p>
+      {subNote && <p className={styles.metricSubNote}>{subNote}</p>}
       {changeLabel && (
         <p className={`${styles.metricChange} ${isPos ? styles.changePos : isNeg ? styles.changeNeg : styles.changeFlat}`}>
           {changeLabel} vs {prevLabel || 'prior'}
         </p>
       )}
       {prevValue && prevValue !== '—' && (
-        <p className={styles.metricPrev}>Was: {prevValue}</p>
+        <p className={styles.metricPrev}>{prevLabel || 'Prior period'}: {prevValue}</p>
       )}
     </div>
   );

@@ -14,6 +14,10 @@ CRITICAL RULES:
 - For quarterly filings: compare current quarter vs same quarter last year (YoY), AND vs prior quarter (QoQ) where available
 - For annual filings: compare FY vs prior FY
 - If a number is not in the document, return null — never hallucinate
+- EBITDA MUST be calculated when PBT, Finance Cost, and Depreciation are available: EBITDA = PBT + Finance Cost + Depreciation - Other Income. Other Income is excluded to show pure operational earnings.
+- For "exchange" field: if listed on both BSE and NSE, return "BSE & NSE" not "Both"
+- For quarterly filings, always populate the ytd object with year-to-date figures (9M for Q3, H1 for Q2, FY for Q4)
+- management_commentary.available should be false for bare quarterly result PDFs that contain only financial tables
 - Return ONLY valid JSON, no markdown fences, no preamble, no trailing commas
 
 Return this exact JSON structure:
@@ -34,19 +38,32 @@ Return this exact JSON structure:
     "investor_takeaway": "One crisp sentence. What should a retail investor do with this information?"
   },
   "financials": {
-    "revenue": { "value": number_in_crores, "prev": number_in_crores, "period": "string", "prev_period": "string" },
-    "net_profit": { "value": number_in_crores, "prev": number_in_crores },
+    "revenue": { "value": number_in_crores, "prev": number_in_crores, "period": "e.g. Q3 FY2025-26", "prev_period": "e.g. Q3 FY2024-25" },
+    "net_profit": { "value": number_in_crores, "prev": number_in_crores, "period": "string", "prev_period": "string" },
+    "ebitda": {
+      "value": number_in_crores_or_null,
+      "prev": number_in_crores_or_null,
+      "margin": number_percent_or_null,
+      "prev_margin": number_percent_or_null,
+      "calculation_note": "EBITDA = PBT + Finance Cost + Depreciation - Other Income. Show your working briefly."
+    },
     "operating_margin": { "value": number_percent_or_null, "prev": number_percent_or_null },
     "net_margin": { "value": number_percent_or_null, "prev": number_percent_or_null },
-    "eps": { "value": number_or_null, "prev": number_or_null },
+    "eps": { "value": number_or_null, "prev": number_or_null, "period": "string", "prev_period": "string" },
     "debt": { "value": number_in_crores_or_null, "prev": number_in_crores_or_null },
+    "ytd": {
+      "revenue": number_in_crores_or_null,
+      "net_profit": number_in_crores_or_null,
+      "ebitda": number_in_crores_or_null,
+      "period_label": "e.g. 9M FY2025-26 or H1 FY2025-26 or FY2025-26"
+    },
     "commentary": "2-3 sentences explaining the numbers in plain English — what story do these numbers tell?"
   },
   "trend": {
     "direction": "improving|stable|deteriorating|mixed",
     "summary": "2-3 sentences: is this company getting better or worse over time? Be direct.",
     "data_points": [
-      { "period": "string", "revenue": number_or_null, "profit": number_or_null }
+      { "period": "e.g. Q3 FY25", "revenue": number_or_null, "profit": number_or_null, "ebitda": number_or_null }
     ]
   },
   "business": {
@@ -69,20 +86,22 @@ Return this exact JSON structure:
     }
   ],
   "management_commentary": {
+    "available": true_or_false,
+    "note": "If this is a bare quarterly result with no management commentary, set available to false and leave key_statements empty. Management commentary is only available in annual reports, investor presentations, or stylised quarterly reports.",
     "key_statements": [
       {
         "said": "what they actually said (paraphrase)",
         "means": "what it really means — decoded frankly"
       }
     ],
-    "tone": "confident|cautious|defensive|evasive|mixed",
-    "tone_note": "1 sentence on overall management tone"
+    "tone": "confident|cautious|defensive|evasive|mixed|na",
+    "tone_note": "1 sentence on overall management tone, or null if not available"
   },
   "ratios": [
     {
-      "name": "string",
-      "value": "string (formatted)",
-      "benchmark": "string — what's considered good/bad for this sector",
+      "name": "string — include as many as the document supports: EBITDA Margin, Net Margin, Gross Margin, EPS, Revenue Growth YoY, PAT Growth YoY, Interest Coverage Ratio (EBITDA/Finance Cost), Debt-to-Equity if balance sheet available, Raw Material as % of Revenue, Finance Cost as % of Revenue",
+      "value": "string (formatted with units)",
+      "benchmark": "string — what is considered good/bad for this specific sector in India",
       "assessment": "strong|ok|weak|na"
     }
   ],
@@ -163,14 +182,16 @@ IMPORTANT: All amounts in the document are in Indian Rupees Lakhs unless stated 
 DOCUMENT TEXT:
 ${textToAnalyze}`;
 
-let response;
-try {
-  response = await fetch('/api/analyze', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-    },
+  let response;
+  try {
+    response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-calls': 'true',
+      },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 4000,

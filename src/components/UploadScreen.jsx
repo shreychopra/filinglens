@@ -22,7 +22,7 @@ const FEATURES = [
   {
     icon: BookOpen,
     title: 'Plain English always',
-    desc: "Every ratio, every term, translated. No finance degree needed to understand what's happening in your investment.",
+    desc: 'Every ratio, every term, translated. No finance degree needed to understand what\'s happening in your investment.',
   },
   {
     icon: ShieldCheck,
@@ -45,6 +45,7 @@ export default function UploadScreen({ onAnalyzing, onReportReady, onError, erro
     if (file.size > 30 * 1024 * 1024) { onError('File too large — please use a PDF under 30MB.'); return; }
     onAnalyzing();
 
+    // DEV MODE: skip API call, return demo data after a fake delay
     if (import.meta.env.DEV) {
       await new Promise(r => setTimeout(r, 2200));
       onReportReady({ ...DEMO_REPORT, _isDemo: false, company: { ...DEMO_REPORT.company, filing_period: file.name.replace('.pdf', '') } });
@@ -79,6 +80,7 @@ export default function UploadScreen({ onAnalyzing, onReportReady, onError, erro
 
   return (
     <div className={styles.page}>
+      {/* Nav */}
       <nav className={styles.nav}>
         <div className={styles.navInner}>
           <div className={styles.logo}><Zap size={18} strokeWidth={2.5} /><span>FilingLens</span></div>
@@ -94,6 +96,7 @@ export default function UploadScreen({ onAnalyzing, onReportReady, onError, erro
       </nav>
 
       <div className={styles.container}>
+        {/* Hero */}
         <section className={styles.hero}>
           <div className={styles.heroBadge}>
             <span className={styles.heroBadgeDot} />
@@ -114,6 +117,7 @@ export default function UploadScreen({ onAnalyzing, onReportReady, onError, erro
           </div>
         </section>
 
+        {/* Upload zone */}
         <section className={styles.uploadSection}>
           <div
             className={`${styles.dropzone} ${dragging ? styles.dragging : ''}`}
@@ -124,6 +128,7 @@ export default function UploadScreen({ onAnalyzing, onReportReady, onError, erro
           >
             <input ref={fileRef} type="file" accept=".pdf" style={{ display: 'none' }}
               onChange={(e) => { const f = e.target.files[0]; if (f) processFile(f); e.target.value = ''; }} />
+
             <div className={styles.dropContent}>
               <div className={styles.dropIconWrap}>
                 <FileText size={26} strokeWidth={1.5} />
@@ -154,6 +159,7 @@ export default function UploadScreen({ onAnalyzing, onReportReady, onError, erro
           </div>
         </section>
 
+        {/* History */}
         {history.length > 0 && (
           <section className={styles.historySection}>
             <h3 className={styles.sectionHeading}>
@@ -183,6 +189,7 @@ export default function UploadScreen({ onAnalyzing, onReportReady, onError, erro
           </section>
         )}
 
+        {/* Features */}
         <section className={styles.featuresSection}>
           <h2 className={styles.featuresHeading}>What you get in every report</h2>
           <div className={styles.featuresGrid}>
@@ -196,6 +203,7 @@ export default function UploadScreen({ onAnalyzing, onReportReady, onError, erro
           </div>
         </section>
 
+        {/* How it works */}
         <section className={styles.howSection}>
           <h2 className={styles.featuresHeading}>How it works</h2>
           <div className={styles.stepsRow}>
@@ -215,6 +223,7 @@ export default function UploadScreen({ onAnalyzing, onReportReady, onError, erro
           </div>
         </section>
 
+        {/* Privacy note */}
         <section className={styles.privacyNote}>
           <ShieldCheck size={14} />
           <p>Your files never leave your browser. All PDF processing happens locally. The only data sent to any server is text — via the Anthropic API to generate the analysis.</p>

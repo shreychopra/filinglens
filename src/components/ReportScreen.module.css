@@ -1,13 +1,12 @@
 .page {
+  min-height: 100vh;
   background: var(--paper);
   padding-bottom: 4rem;
 }
 
 .topbar {
-  position: fixed;
+  position: sticky;
   top: 0;
-  left: 0;
-  width: 100%;
   z-index: 100;
   background: rgba(250,249,247,0.92);
   backdrop-filter: blur(8px);
@@ -59,7 +58,7 @@
 .container {
   max-width: 700px;
   margin: 0 auto;
-  padding: 7.5rem 1rem 0;
+  padding: 1.5rem 1rem 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -67,31 +66,13 @@
 
 /* Company Header */
 .companyHeader {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 1.25rem 1.25rem 1rem;
+  padding: 1.1rem 1.25rem;
   background: var(--paper);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
 }
 
-.companyAvatar {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-md);
-  background: var(--accent-light);
-  color: var(--accent);
-  font-size: 15px;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  letter-spacing: 0.02em;
-}
-
-.companyInfo { flex: 1; min-width: 0; }
+.companyInfo { width: 100%; }
 
 .companyName {
   font-family: var(--font-display);
@@ -127,6 +108,15 @@
 .verdictRisky  { background: var(--danger-light); border: 1px solid #fecaca; }
 
 .verdictLeft { display: flex; flex-direction: column; gap: 6px; }
+
+.verdictLabel {
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 6px;
+  opacity: 0.6;
+}
 
 .verdictBadge {
   display: inline-flex;
@@ -341,11 +331,13 @@
 .flagPill {
   font-size: 10px;
   font-weight: 500;
-  padding: 2px 8px;
+  padding: 2px 0;
   border-radius: 20px;
   flex-shrink: 0;
   white-space: nowrap;
   margin-top: 1px;
+  min-width: 64px;
+  text-align: center;
 }
 .flagClear   { background: var(--ok-light); color: var(--ok); }
 .flagWatch   { background: var(--warn-light); color: var(--warn); }
@@ -614,11 +606,6 @@
 
 /* Demo banner */
 .demoBanner {
-  position: fixed;
-  top: 46px;
-  left: 0;
-  width: 100%;
-  z-index: 99;
   background: var(--accent-light);
   border-bottom: 1px solid #b7ddd0;
   padding: 9px 1.5rem;
@@ -704,4 +691,74 @@
   .metricsGrid { grid-template-columns: 1fr 1fr; }
   .bearBullGrid { grid-template-columns: 1fr; }
   .topbar { padding: 8px 1rem; }
+}
+
+/* Filing type chip */
+.chipType {
+  background: var(--accent-light);
+  border: 1px solid #b7ddd0;
+  border-radius: 20px;
+  padding: 2px 10px;
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* Metric sub note */
+.metricSubNote {
+  font-size: 11px;
+  color: var(--accent-mid);
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+/* EBITDA calculation note */
+.ebitdaNote {
+  font-size: 11px;
+  color: var(--ink-4);
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-style: italic;
+}
+
+/* YTD row */
+.ytdRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: var(--paper-2);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.ytdLabel {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-3);
+  flex-shrink: 0;
+}
+
+.ytdStat {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+/* Desktop two-column layout */
+@media (min-width: 900px) {
+  .container {
+    max-width: 1100px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto;
+    column-gap: 14px;
+    align-items: start;
+  }
+
+  .companyHeader { grid-column: 1 / -1; }
+  .verdictHero   { grid-column: 1 / -1; }
+  .footer        { grid-column: 1 / -1; }
 }

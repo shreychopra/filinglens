@@ -23,12 +23,25 @@ export const DEMO_REPORT = {
   },
   financials: {
     revenue: { value: 301.5, prev: 247.2, period: "Q3 FY26", prev_period: "Q3 FY25" },
-    net_profit: { value: 1.66, prev: 3.43 },
+    net_profit: { value: 1.66, prev: 3.43, period: "Q3 FY26", prev_period: "Q3 FY25" },
+    ebitda: {
+      value: 9.17,
+      prev: 14.03,
+      margin: 3.04,
+      prev_margin: 5.67,
+      calculation_note: "EBITDA = PBT (₹2.17 Cr) + Finance Cost (₹4.46 Cr) + Depreciation (₹4.46 Cr) - Other Income (₹2.49 Cr) = ₹9.17 Cr"
+    },
     operating_margin: { value: 1.07, prev: 2.44 },
     net_margin: { value: 0.55, prev: 1.39 },
-    eps: { value: 0.87, prev: 1.81 },
+    eps: { value: 0.87, prev: 1.81, period: "Q3 FY26", prev_period: "Q3 FY25" },
     debt: { value: null, prev: null },
-    commentary: "VSTL is in a classic volume-up, margin-down situation. They're shipping more steel than ever, but global steel prices have softened, so each tonne they sell earns less. Revenue grew ₹54 Cr year-on-year, but profit shrank by ₹1.77 Cr. The math is stark — this company needs steel prices to recover, or it needs to start selling higher-value products."
+    ytd: {
+      revenue: 817.2,
+      net_profit: 6.22,
+      ebitda: 28.4,
+      period_label: "9M FY2025-26"
+    },
+    commentary: "VSTL is in a classic volume-up, margin-down situation. They're shipping more steel than ever, but global steel prices have softened, so each tonne they sell earns less. Revenue grew ₹54 Cr year-on-year, but profit shrank by ₹1.77 Cr. EBITDA margin has compressed from 5.67% to 3.04% — showing the operational squeeze clearly."
   },
   trend: {
     direction: "mixed",
@@ -87,6 +100,7 @@ export const DEMO_REPORT = {
     }
   ],
   management_commentary: {
+    available: true,
     tone: "cautious",
     tone_note: "Management is carefully optimistic — acknowledging the difficult environment while pointing to future catalysts, but stopping short of any specific guidance.",
     key_statements: [

@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Key, ExternalLink, Eye, EyeOff, Zap, ArrowRight, Play } from 'lucide-react';
+import { Key, ExternalLink, Eye, EyeOff, Zap, ArrowRight } from 'lucide-react';
 import { saveApiKey } from '../lib/analyzer.js';
 import styles from './ApiKeyScreen.module.css';
 
-export default function ApiKeyScreen({ onKeySet, onShowDemo }) {
+export default function ApiKeyScreen({ onKeySet }) {
   const [key, setKey] = useState('');
   const [show, setShow] = useState(false);
   const [error, setError] = useState('');
@@ -20,12 +20,15 @@ export default function ApiKeyScreen({ onKeySet, onShowDemo }) {
     setLoading(true);
     setError('');
 
+    // Quick validation call
     try {
-      const res = await fetch('/api/analyze', {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-api-key': trimmed,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-calls': 'true',
         },
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',
@@ -42,8 +45,8 @@ export default function ApiKeyScreen({ onKeySet, onShowDemo }) {
 
       saveApiKey(trimmed);
       onKeySet();
-    } catch (err) {
-      setError('Connection failed: ' + (err?.message || String(err)));
+    } catch {
+      setError('Could not verify the key — check your internet connection.');
     }
     setLoading(false);
   }
@@ -99,17 +102,6 @@ export default function ApiKeyScreen({ onKeySet, onShowDemo }) {
               )}
             </button>
           </form>
-
-          <div className={styles.orDivider}><span>or</span></div>
-
-          <button
-            type="button"
-            className={styles.demoSkipBtn}
-            onClick={(e) => { e.stopPropagation(); onShowDemo(); }}
-          >
-            <Play size={13} strokeWidth={2.5} />
-            Skip for now — see a live demo instead
-          </button>
 
           <div className={styles.howTo}>
             <p className={styles.howToTitle}>How to get a key</p>

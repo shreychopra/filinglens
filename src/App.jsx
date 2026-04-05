@@ -4,7 +4,6 @@ import AnalyzingScreen from './components/AnalyzingScreen.jsx';
 import ReportScreen from './components/ReportScreen.jsx';
 import ApiKeyScreen from './components/ApiKeyScreen.jsx';
 import { getApiKey } from './lib/analyzer.js';
-import { DEMO_REPORT } from './lib/demoData.js';
 
 export default function App() {
   const [screen, setScreen] = useState('loading');
@@ -12,6 +11,7 @@ export default function App() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    // In dev mode, skip the API key screen — use demo data for all uploads
     if (import.meta.env.DEV) {
       setScreen('upload');
       return;
@@ -45,10 +45,7 @@ export default function App() {
   return (
     <>
       {screen === 'apikey' && (
-        <ApiKeyScreen
-          onKeySet={() => setScreen('upload')}
-          onShowDemo={() => handleReportReady(DEMO_REPORT)}
-        />
+        <ApiKeyScreen onKeySet={() => setScreen('upload')} />
       )}
       {screen === 'upload' && (
         <UploadScreen
