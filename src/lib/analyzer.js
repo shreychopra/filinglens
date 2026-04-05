@@ -18,7 +18,7 @@ CRITICAL RULES:
 - CRITICAL EBITDA CHECK: EBITDA must always be LESS than Revenue. EBITDA margin for a steel pipe manufacturer should be 3-8%. If your calculated EBITDA margin is above 15%, you have made an error — recheck the numbers. Common mistake: using 9-month figures instead of quarterly figures.
 - Always use the SAME period figures for all calculations — if showing Q3 numbers, use Q3 PBT, Q3 Finance Cost, Q3 Depreciation, Q3 Other Income.
 - For "exchange" field: if listed on both BSE and NSE, return "BSE & NSE" not "Both"
-- For quarterly filings, always populate the ytd object with year-to-date figures (9M for Q3, H1 for Q2, FY for Q4)
+- For quarterly filings, always populate the ytd object with year-to-date figures (9M for Q3, H1 for Q2, FY for Q4). Also populate ytd_data_points in trend with the current and prior year YTD figures.
 - management_commentary.available should be false for bare quarterly result PDFs that contain only financial tables
 - Return ONLY valid JSON, no markdown fences, no preamble, no trailing commas
 
@@ -28,7 +28,7 @@ Return this exact JSON structure:
   "company": {
     "name": "string",
     "ticker": "string or null",
-    "exchange": "BSE/NSE/Both/null",
+    "exchange": "BSE & NSE if both, else BSE or NSE or null",
     "sector": "string",
     "filing_type": "quarterly|annual|drhp|other",
     "filing_period": "e.g. Q3 FY2025-26 or FY2024-25 or DRHP Sep 2023"
@@ -54,10 +54,21 @@ Return this exact JSON structure:
     "eps": { "value": number_or_null, "prev": number_or_null, "period": "string", "prev_period": "string" },
     "debt": { "value": number_in_crores_or_null, "prev": number_in_crores_or_null },
     "ytd": {
+      "period_label": "e.g. 9M FY2025-26 or H1 FY2025-26 or FY2025-26",
+      "prev_period_label": "e.g. 9M FY2024-25 — same period last year",
       "revenue": number_in_crores_or_null,
+      "revenue_prev": number_in_crores_or_null,
       "net_profit": number_in_crores_or_null,
+      "net_profit_prev": number_in_crores_or_null,
       "ebitda": number_in_crores_or_null,
-      "period_label": "e.g. 9M FY2025-26 or H1 FY2025-26 or FY2025-26"
+      "ebitda_prev": number_in_crores_or_null,
+      "ebitda_margin": number_percent_or_null,
+      "ebitda_margin_prev": number_percent_or_null,
+      "net_margin": number_percent_or_null,
+      "net_margin_prev": number_percent_or_null,
+      "eps": number_or_null,
+      "eps_prev": number_or_null,
+      "commentary": "2-3 sentences on the year-to-date performance — same plain English style as the quarterly commentary"
     },
     "commentary": "2-3 sentences explaining the numbers in plain English — what story do these numbers tell?"
   },
@@ -66,6 +77,9 @@ Return this exact JSON structure:
     "summary": "2-3 sentences: is this company getting better or worse over time? Be direct.",
     "data_points": [
       { "period": "e.g. Q3 FY25", "revenue": number_or_null, "profit": number_or_null, "ebitda": number_or_null }
+    ],
+    "ytd_data_points": [
+      { "period": "e.g. 9M FY25", "revenue": number_or_null, "profit": number_or_null, "ebitda": number_or_null }
     ]
   },
   "business": {
@@ -89,7 +103,7 @@ Return this exact JSON structure:
   ],
   "management_commentary": {
     "available": true_or_false,
-    "note": "If this is a bare quarterly result with no management commentary, set available to false and leave key_statements empty. Management commentary is only available in annual reports, investor presentations, or stylised quarterly reports.",
+    "note": "If this is a bare quarterly result with no management commentary, set available to false and leave key_statements empty.",
     "key_statements": [
       {
         "said": "what they actually said (paraphrase)",
@@ -101,9 +115,9 @@ Return this exact JSON structure:
   },
   "ratios": [
     {
-      "name": "string — DO NOT repeat Revenue Growth, PAT Growth, or EPS — those are already in the snapshot. Include ONLY: EBITDA Margin (%), Net Margin (%), Gross Margin if calculable (%), Interest Coverage Ratio (EBITDA ÷ Finance Cost), Raw Material as % of Revenue, Finance Cost as % of Revenue, Debt-to-Equity if balance sheet available, Operating Leverage (revenue growth vs profit growth gap)",
-      "value": "string (formatted with units)",
-      "benchmark": "string — what is considered good/bad for this specific sector in India",
+      "name": "string — DO NOT repeat Revenue Growth, PAT Growth, or EPS. Include ONLY: EBITDA Margin (%), Net Margin (%), Interest Coverage Ratio (EBITDA divided by Finance Cost), Raw Material as % of Revenue, Finance Cost as % of Revenue, Debt-to-Equity if balance sheet available",
+      "value": "string (formatted with units — e.g. 3.1%, 2.4x, 84%)",
+      "benchmark": "string — what is considered good/bad for this specific sector in India, with a number",
       "assessment": "strong|ok|weak|na"
     }
   ],
@@ -114,7 +128,7 @@ Return this exact JSON structure:
       "detail": "string"
     }
   ],
-  "what_changed": "string — 2-4 sentences on what is NEW or DIFFERENT vs prior period. If first filing, say so. This is the most valuable section for repeat users.",
+  "what_changed": "string — 2-4 sentences on what is NEW or DIFFERENT vs prior period. If first filing, say so.",
   "hidden_insights": ["2-4 strings — non-obvious findings from footnotes, accounting policy changes, one-off items, unusual line items. These should surprise the reader."],
   "bear_bull": {
     "bull": ["3 specific reasons to be optimistic — not generic"],
@@ -143,7 +157,7 @@ For DRHP filings, populate drhp_extras like this:
   }
 }
 
-Important: if a field is not available from the document, use null. Never hallucinate numbers. If you can't find a specific ratio or figure, use null.`;
+Important: if a field is not available from the document, use null. Never hallucinate numbers.`;
 
 export function getApiKey() {
   return localStorage.getItem('fl_api_key') || '';
@@ -161,15 +175,13 @@ export async function analyzeFilingText(extractedText, filingHint = '') {
   const apiKey = getApiKey();
   if (!apiKey) throw new Error('NO_API_KEY');
 
-  // For large DRHPs (400+ pages), take strategic chunks rather than first 28k chars
-  // Take beginning (business overview), middle (financials), and a slice for risk factors
   const textLen = extractedText.length;
   let textToAnalyze;
   if (textLen > 40000) {
-    const chunk1 = extractedText.slice(0, 16000);       // Cover page, business, financials
+    const chunk1 = extractedText.slice(0, 16000);
     const midPoint = Math.floor(textLen * 0.4);
-    const chunk2 = extractedText.slice(midPoint, midPoint + 8000); // Risk factors area
-    const chunk3 = extractedText.slice(textLen - 6000);  // End — management commentary, notes
+    const chunk2 = extractedText.slice(midPoint, midPoint + 8000);
+    const chunk3 = extractedText.slice(textLen - 6000);
     textToAnalyze = chunk1 + '\n\n[... document continues ...]\n\n' + chunk2 + '\n\n[... document continues ...]\n\n' + chunk3;
   } else {
     textToAnalyze = extractedText.slice(0, 32000);
@@ -184,24 +196,24 @@ IMPORTANT: All amounts in the document are in Indian Rupees Lakhs unless stated 
 DOCUMENT TEXT:
 ${textToAnalyze}`;
 
-let response;
-try {
-  response = await fetch('/api/analyze', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4000,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userMessage }],
-    }),
-  });
-} catch (networkErr) {
-  throw new Error('Network error — check your internet connection and try again.');
-}
+  let response;
+  try {
+    response = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: userMessage }],
+      }),
+    });
+  } catch (networkErr) {
+    throw new Error('Network error — check your internet connection and try again.');
+  }
 
   if (response.status === 401) throw new Error('INVALID_API_KEY');
   if (response.status === 429) throw new Error('Rate limit hit — wait a moment and try again.');
@@ -219,7 +231,6 @@ try {
     const clean = rawText.replace(/```json\n?|```/g, '').trim();
     return JSON.parse(clean);
   } catch {
-    // Try to extract JSON if there's surrounding text
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       try { return JSON.parse(jsonMatch[0]); } catch {}

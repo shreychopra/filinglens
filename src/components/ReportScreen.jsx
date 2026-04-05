@@ -41,10 +41,11 @@ function ppChange(curr, prev) {
   return (curr - prev).toFixed(1) + ' pp';
 }
 
-function CollapsibleSection({ title, icon: Icon, children, defaultOpen = true, badge }) {
+function CollapsibleSection({ title, icon: Icon, children, defaultOpen = true, badge, col }) {
   const [open, setOpen] = useState(defaultOpen);
+  const colClass = col === 'left' ? styles.colLeft : col === 'right' ? styles.colRight : '';
   return (
-    <div className={styles.section}>
+    <div className={`${styles.section} ${colClass}`}>
       <button className={styles.sectionHeader} onClick={() => setOpen(o => !o)}>
         <div className={styles.sectionHeaderLeft}>
           <Icon size={15} strokeWidth={2} />
@@ -152,6 +153,7 @@ export default function ReportScreen({ report, onReset }) {
         </div>
       );
     }
+    // YTD — same structure, same order
     return (
       <div className={styles.metricsGrid}>
         <MetricCard label="Revenue"
@@ -190,8 +192,7 @@ export default function ReportScreen({ report, onReset }) {
         <button className={styles.backBtn} onClick={onReset}><ArrowLeft size={14} /> New filing</button>
         <div className={styles.logoSmall}><Zap size={14} strokeWidth={2.5} />FilingLens</div>
         <button className={styles.shareBtn} onClick={handleShare}>
-          {copied ? <Check size={13} /> : <Share2 size={13} />}
-          {copied ? 'Copied!' : 'Share'}
+          {copied ? <Check size={13} /> : <Share2 size={13} />}{copied ? 'Copied!' : 'Share'}
         </button>
         <button className={styles.shareBtn} onClick={() => window.print()} title="Save as PDF">
           <Printer size={13} /><span className={styles.printLabel}>Print</span>
@@ -207,16 +208,16 @@ export default function ReportScreen({ report, onReset }) {
       <div className={styles.page}>
         <div className={styles.container}>
 
-          {/* Company header — full width */}
+          {/* ── Full width: Company header ── */}
           <div className={styles.fullWidth}>
             <div className={styles.companyHeader}>
               <h1 className={styles.companyName}>{company?.name || 'Company'}</h1>
               <div className={styles.companyMeta}>
-                {company?.ticker       && <span className={styles.chip}>{company.ticker}</span>}
-                {company?.exchange     && <span className={styles.chip}>{company.exchange}</span>}
-                {company?.sector       && <span className={styles.chip}>{company.sector}</span>}
-                {company?.filing_period&& <span className={styles.chip}>{company.filing_period}</span>}
-                {company?.filing_type  && (
+                {company?.ticker      && <span className={styles.chip}>{company.ticker}</span>}
+                {company?.exchange    && <span className={styles.chip}>{company.exchange}</span>}
+                {company?.sector      && <span className={styles.chip}>{company.sector}</span>}
+                {company?.filing_period && <span className={styles.chip}>{company.filing_period}</span>}
+                {company?.filing_type && (
                   <span className={styles.chipType}>
                     {company.filing_type==='quarterly'?'Quarterly result':company.filing_type==='annual'?'Annual report':company.filing_type==='drhp'?'DRHP':''}
                   </span>
@@ -225,17 +226,23 @@ export default function ReportScreen({ report, onReset }) {
             </div>
           </div>
 
-          {/* Verdict — full width */}
+          {/* ── Full width: Verdict ── */}
           <div className={styles.fullWidth}>
             <div className={`${styles.verdictHero} ${V.color}`}>
               <p className={styles.verdictLabel}>Our assessment</p>
-              <div className={styles.verdictBadge}><VIcon size={16} strokeWidth={2.5} />{V.label}</div>
+              <div className={styles.verdictBadge}><VIcon size={16} strokeWidth={2.5}/>{V.label}</div>
               <p className={styles.verdictReason}>{tldr?.verdict_reason}</p>
             </div>
           </div>
 
-          {/* 1. TL;DR */}
-          <CollapsibleSection title="TL;DR — Key highlights" icon={Zap}>
+          {/* ══════════════════════════════════════════════════════
+              TWO-COLUMN SECTIONS — fixed left/right assignments
+              Left col:  1=TL;DR, 3=Trend, 5=Red flags, 7=Growth drivers, 7b=Mgmt, 9=Ratios, 11=ELI15
+              Right col: 2=Snapshot, 4=Business, 6=Risks, 8=What changed, 10=Bear/Bull, 12=Insights
+          ══════════════════════════════════════════════════════ */}
+
+          {/* 1. TL;DR — LEFT */}
+          <CollapsibleSection col="left" title="TL;DR — Key highlights" icon={Zap}>
             <ul className={styles.bulletList}>
               {(tldr?.bullets||[]).map((b,i)=>(
                 <li key={i} className={styles.bulletItem}><span className={styles.bulletDot}/>{b}</li>
@@ -246,8 +253,8 @@ export default function ReportScreen({ report, onReset }) {
             )}
           </CollapsibleSection>
 
-          {/* 2. Financial snapshot */}
-          <CollapsibleSection title="Financial snapshot" icon={BarChart2}>
+          {/* 2. Financial Snapshot — RIGHT */}
+          <CollapsibleSection col="right" title="Financial snapshot" icon={BarChart2}>
             {hasYtd && (
               <ToggleRow
                 options={[
@@ -265,17 +272,15 @@ export default function ReportScreen({ report, onReset }) {
             {snapshotView==='ytd'       && yt.commentary && <p className={styles.commentary}>{yt.commentary}</p>}
           </CollapsibleSection>
 
-          {/* 3. Performance trend */}
+          {/* 3. Performance Trend — LEFT */}
           {quarterlyTrend.length > 1 && (
-            <CollapsibleSection title="Performance trend" icon={TrendingUp}>
+            <CollapsibleSection col="left" title="Performance trend" icon={TrendingUp}>
               <div className={styles.trendMeta}>
                 <span className={`${styles.trendBadge} ${trend?.direction==='improving'?styles.trendUp:trend?.direction==='deteriorating'?styles.trendDown:styles.trendFlat}`}>
                   {trend?.direction||'mixed'}
                 </span>
                 {trend?.summary && <p className={styles.trendSummary}>{trend.summary}</p>}
               </div>
-
-              {/* Period toggle — only when YTD data exists */}
               {ytdTrend.length > 0 && (
                 <ToggleRow
                   options={[
@@ -286,8 +291,6 @@ export default function ReportScreen({ report, onReset }) {
                   onChange={(v) => { setTrendPeriod(v); setTrendMetric('revenue'); }}
                 />
               )}
-
-              {/* Metric toggle */}
               <ToggleRow
                 options={[
                   { key: 'revenue', label: 'Revenue' },
@@ -296,7 +299,6 @@ export default function ReportScreen({ report, onReset }) {
                 ]}
                 value={trendMetric} onChange={setTrendMetric}
               />
-
               <div className={styles.chartWrap}>
                 <ResponsiveContainer width="100%" height={180}>
                   <BarChart data={trendData} margin={{ top:4, right:4, left:-20, bottom:0 }}>
@@ -322,8 +324,8 @@ export default function ReportScreen({ report, onReset }) {
             </CollapsibleSection>
           )}
 
-          {/* 4. What this company does */}
-          <CollapsibleSection title="What this company actually does" icon={FileText}>
+          {/* 4. What this company does — RIGHT */}
+          <CollapsibleSection col="right" title="What this company actually does" icon={FileText}>
             <p className={styles.bodyText}>{business?.what_they_do}</p>
             {business?.key_segments?.length>0 && (
               <div className={styles.segmentList}>
@@ -347,8 +349,8 @@ export default function ReportScreen({ report, onReset }) {
             )}
           </CollapsibleSection>
 
-          {/* 5. Red flag check */}
-          <CollapsibleSection title="Red flag check" icon={Shield}
+          {/* 5. Red flag check — LEFT */}
+          <CollapsibleSection col="left" title="Red flag check" icon={Shield}
             badge={red_flags?.filter(f=>f.status!=='clear').length||null}>
             <div className={styles.flagList}>
               {(red_flags||[]).map((f,i)=>{
@@ -366,8 +368,8 @@ export default function ReportScreen({ report, onReset }) {
             </div>
           </CollapsibleSection>
 
-          {/* 6. Risks to watch */}
-          <CollapsibleSection title="Risks to watch" icon={AlertTriangle}
+          {/* 6. Risks to watch — RIGHT */}
+          <CollapsibleSection col="right" title="Risks to watch" icon={AlertTriangle}
             badge={risks?.filter(r=>r.severity==='high').length?`${risks.filter(r=>r.severity==='high').length} high`:null}>
             {(risks||[]).map((r,i)=>(
               <div key={i} className={styles.riskItem}>
@@ -380,8 +382,8 @@ export default function ReportScreen({ report, onReset }) {
             ))}
           </CollapsibleSection>
 
-          {/* 7. Growth drivers */}
-          <CollapsibleSection title="Growth drivers & positives" icon={TrendingUp}>
+          {/* 7. Growth drivers — LEFT */}
+          <CollapsibleSection col="left" title="Growth drivers & positives" icon={TrendingUp}>
             {(positives||[]).map((p,i)=>(
               <div key={i} className={styles.positiveItem}>
                 <CheckCircle size={14} className={styles.positiveIcon}/>
@@ -393,9 +395,9 @@ export default function ReportScreen({ report, onReset }) {
             ))}
           </CollapsibleSection>
 
-          {/* 7b. Management commentary — only when applicable */}
+          {/* 7b. Management commentary — LEFT (only when applicable) */}
           {hasMgmtComm && (
-            <CollapsibleSection title="Management commentary — decoded" icon={MessageSquare} defaultOpen={false}>
+            <CollapsibleSection col="left" title="Management commentary — decoded" icon={MessageSquare} defaultOpen={false}>
               {management_commentary?.tone_note && (
                 <p className={styles.toneNote}>
                   <strong>Overall tone:</strong> {management_commentary.tone} — {management_commentary.tone_note}
@@ -414,15 +416,15 @@ export default function ReportScreen({ report, onReset }) {
             </CollapsibleSection>
           )}
 
-          {/* 8. What changed */}
+          {/* 8. What changed — RIGHT */}
           {what_changed && (
-            <CollapsibleSection title="What changed this period" icon={AlertCircle}>
+            <CollapsibleSection col="right" title="What changed this period" icon={AlertCircle}>
               <p className={styles.bodyText}>{what_changed}</p>
             </CollapsibleSection>
           )}
 
-          {/* 9. Key ratios */}
-          <CollapsibleSection title="Key ratios — explained" icon={BarChart2} defaultOpen={false}>
+          {/* 9. Key ratios — LEFT */}
+          <CollapsibleSection col="left" title="Key ratios — explained" icon={BarChart2} defaultOpen={false}>
             <div className={styles.ratioList}>
               {(ratios||[]).map((r,i)=>(
                 <div key={i} className={styles.ratioRow}>
@@ -439,8 +441,8 @@ export default function ReportScreen({ report, onReset }) {
             </div>
           </CollapsibleSection>
 
-          {/* 10. Bear / Bull */}
-          <CollapsibleSection title="Bear case vs bull case" icon={Target} defaultOpen={false}>
+          {/* 10. Bear / Bull — RIGHT */}
+          <CollapsibleSection col="right" title="Bear case vs bull case" icon={Target} defaultOpen={false}>
             <div className={styles.bearBullGrid}>
               <div className={styles.bullBox}>
                 <p className={styles.bbLabel}>3 reasons to be optimistic</p>
@@ -457,9 +459,9 @@ export default function ReportScreen({ report, onReset }) {
             </div>
           </CollapsibleSection>
 
-          {/* 11. ELI15 */}
+          {/* 11. ELI15 — LEFT */}
           {eli15 && (
-            <CollapsibleSection title="Explain it like I'm 15" icon={Smile} defaultOpen={false}>
+            <CollapsibleSection col="left" title="Explain it like I'm 15" icon={Smile} defaultOpen={false}>
               <div className={styles.eli15Wrap}>
                 <div className={styles.eli15Block}>
                   <p className={styles.eli15Label}>What does this company do?</p>
@@ -477,9 +479,9 @@ export default function ReportScreen({ report, onReset }) {
             </CollapsibleSection>
           )}
 
-          {/* 12. Hidden insights */}
+          {/* 12. Hidden insights — RIGHT */}
           {hidden_insights?.length>0 && (
-            <CollapsibleSection title="Hidden insights from the footnotes" icon={Lightbulb} defaultOpen={false}>
+            <CollapsibleSection col="right" title="Hidden insights from the footnotes" icon={Lightbulb} defaultOpen={false}>
               <ul className={styles.insightList}>
                 {hidden_insights.map((insight,i)=>(
                   <li key={i} className={styles.insightItem}><span className={styles.insightDot}/>{insight}</li>
@@ -488,46 +490,48 @@ export default function ReportScreen({ report, onReset }) {
             </CollapsibleSection>
           )}
 
-          {/* DRHP extras */}
+          {/* DRHP — full width */}
           {drhp_extras && (
-            <CollapsibleSection title="IPO deep dive" icon={FileText}>
-              <div className={styles.ipoGrid}>
-                {drhp_extras.issue_size&&<div className={styles.ipoStat}><p className={styles.ipoStatLabel}>Issue size</p><p className={styles.ipoStatValue}>{drhp_extras.issue_size}</p></div>}
-                {drhp_extras.issue_type&&<div className={styles.ipoStat}><p className={styles.ipoStatLabel}>Issue type</p><p className={styles.ipoStatValue}>{drhp_extras.issue_type}</p></div>}
-              </div>
-              {drhp_extras.use_of_funds?.length>0&&(
-                <div className={styles.ipoSection}>
-                  <p className={styles.ipoSectionLabel}>Use of IPO proceeds</p>
-                  <ul className={styles.ipoFundsList}>{drhp_extras.use_of_funds.map((f,i)=><li key={i}>{f}</li>)}</ul>
-                  {drhp_extras.use_of_funds_verdict&&<p className={styles.ipoVerdict}>{drhp_extras.use_of_funds_verdict}</p>}
+            <div className={styles.fullWidth}>
+              <CollapsibleSection title="IPO deep dive" icon={FileText}>
+                <div className={styles.ipoGrid}>
+                  {drhp_extras.issue_size&&<div className={styles.ipoStat}><p className={styles.ipoStatLabel}>Issue size</p><p className={styles.ipoStatValue}>{drhp_extras.issue_size}</p></div>}
+                  {drhp_extras.issue_type&&<div className={styles.ipoStat}><p className={styles.ipoStatLabel}>Issue type</p><p className={styles.ipoStatValue}>{drhp_extras.issue_type}</p></div>}
                 </div>
-              )}
-              {drhp_extras.promoters?.length>0&&(
-                <div className={styles.ipoSection}>
-                  <p className={styles.ipoSectionLabel}>Promoters</p>
-                  {drhp_extras.promoters.map((p,i)=>(
-                    <div key={i} className={styles.promoterRow}>
-                      <span>{p.name}</span>
-                      <span className={styles.promoterRole}>{p.role}</span>
-                      {p.stake_pct!=null&&<span className={styles.promoterStake}>{p.stake_pct}%</span>}
-                    </div>
-                  ))}
-                  {drhp_extras.promoter_assessment&&<p className={styles.commentary}>{drhp_extras.promoter_assessment}</p>}
-                </div>
-              )}
-              {drhp_extras.related_party_concerns&&(
-                <div className={`${styles.flagRow} ${styles.flagRowAlert}`}>
-                  <span className={`${styles.flagPill} ${styles.flagWatch}`}>Related parties</span>
-                  <p className={styles.flagDetail}>{drhp_extras.related_party_concerns}</p>
-                </div>
-              )}
-              {drhp_extras.ipo_verdict&&(
-                <div className={`${styles.verdictHero} ${drhp_extras.ipo_verdict==='apply'?styles.verdictStrong:drhp_extras.ipo_verdict==='avoid'?styles.verdictRisky:styles.verdictMixed}`} style={{marginTop:'1rem'}}>
-                  <div className={styles.verdictBadge} style={{textTransform:'capitalize'}}>IPO verdict: {drhp_extras.ipo_verdict}</div>
-                  {drhp_extras.ipo_verdict_reason&&<p className={styles.verdictReason}>{drhp_extras.ipo_verdict_reason}</p>}
-                </div>
-              )}
-            </CollapsibleSection>
+                {drhp_extras.use_of_funds?.length>0&&(
+                  <div className={styles.ipoSection}>
+                    <p className={styles.ipoSectionLabel}>Use of IPO proceeds</p>
+                    <ul className={styles.ipoFundsList}>{drhp_extras.use_of_funds.map((f,i)=><li key={i}>{f}</li>)}</ul>
+                    {drhp_extras.use_of_funds_verdict&&<p className={styles.ipoVerdict}>{drhp_extras.use_of_funds_verdict}</p>}
+                  </div>
+                )}
+                {drhp_extras.promoters?.length>0&&(
+                  <div className={styles.ipoSection}>
+                    <p className={styles.ipoSectionLabel}>Promoters</p>
+                    {drhp_extras.promoters.map((p,i)=>(
+                      <div key={i} className={styles.promoterRow}>
+                        <span>{p.name}</span>
+                        <span className={styles.promoterRole}>{p.role}</span>
+                        {p.stake_pct!=null&&<span className={styles.promoterStake}>{p.stake_pct}%</span>}
+                      </div>
+                    ))}
+                    {drhp_extras.promoter_assessment&&<p className={styles.commentary}>{drhp_extras.promoter_assessment}</p>}
+                  </div>
+                )}
+                {drhp_extras.related_party_concerns&&(
+                  <div className={`${styles.flagRow} ${styles.flagRowAlert}`}>
+                    <span className={`${styles.flagPill} ${styles.flagWatch}`}>Related parties</span>
+                    <p className={styles.flagDetail}>{drhp_extras.related_party_concerns}</p>
+                  </div>
+                )}
+                {drhp_extras.ipo_verdict&&(
+                  <div className={`${styles.verdictHero} ${drhp_extras.ipo_verdict==='apply'?styles.verdictStrong:drhp_extras.ipo_verdict==='avoid'?styles.verdictRisky:styles.verdictMixed}`} style={{marginTop:'1rem'}}>
+                    <div className={styles.verdictBadge} style={{textTransform:'capitalize'}}>IPO verdict: {drhp_extras.ipo_verdict}</div>
+                    {drhp_extras.ipo_verdict_reason&&<p className={styles.verdictReason}>{drhp_extras.ipo_verdict_reason}</p>}
+                  </div>
+                )}
+              </CollapsibleSection>
+            </div>
           )}
 
           {/* Footer — full width */}
